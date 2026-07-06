@@ -15,5 +15,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '帳號或密碼錯誤' }, { status: 401 });
   }
 
-  return NextResponse.json({ success: true, username: admin.username });
+  return NextResponse.json({ success: true, username: (admin as any).username });
 }
