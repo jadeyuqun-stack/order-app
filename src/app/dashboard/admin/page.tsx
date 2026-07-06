@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import StoreManager from './StoreManager';
 import MenuManager from './MenuManager';
 import DailyOrderManager from './DailyOrderManager';
@@ -7,6 +8,9 @@ import EmployeeManager from './EmployeeManager';
 import ReportManager from './ReportManager';
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'stores' | 'menu' | 'daily' | 'employees' | 'report'>('stores');
   const [stores, setStores] = useState<any[]>([]);
   const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -17,8 +21,18 @@ export default function AdminDashboard() {
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+      setLoggedIn(true);
+    } else {
+      router.push('/dashboard/admin/login');
+    }
+    setLoading(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminLoggedIn');
+    router.push('/dashboard/admin/login');
+  };
 
   const loadData = () => {
     Promise.all([
@@ -33,6 +47,12 @@ export default function AdminDashboard() {
       setEmployees(e);
     });
   };
+
+  useEffect(() => {
+    if (loggedIn) loadData();
+  }, [loggedIn]);
+
+  if (loading) return <div className="text-center py-12 text-gray-400">載入中...</div>;
 
   const handleExportCSV = () => {
     if (report.length === 0) return;
@@ -50,7 +70,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">管理後台</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">管理後台</h1>
+        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500">
+          登出
+        </button>
+      </div>
 
       <div className="flex gap-1 border-b border-border">
         {[

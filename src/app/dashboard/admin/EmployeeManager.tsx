@@ -10,6 +10,7 @@ interface Props {
 export default function EmployeeManager({ employees, setEmployees, refresh }: Props) {
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -22,6 +23,12 @@ export default function EmployeeManager({ employees, setEmployees, refresh }: Pr
     setEmployees(data);
     setName('');
     setDepartment('');
+  };
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/employees?id=${id}`, { method: 'DELETE' });
+    setConfirmDelete(null);
+    refresh();
   };
 
   return (
@@ -58,7 +65,32 @@ export default function EmployeeManager({ employees, setEmployees, refresh }: Pr
               <span className="font-medium">{emp.name}</span>
               {emp.department && <span className="text-gray-400 text-sm ml-2">[{emp.department}]</span>}
             </div>
-            <span className="text-xs text-gray-400">{emp.created_at}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">{emp.created_at}</span>
+              {confirmDelete === emp.id ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleDelete(emp.id)}
+                    className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                  >
+                    確認刪除
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="px-2 py-1 bg-gray-200 text-xs rounded hover:bg-gray-300"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(emp.id)}
+                  className="px-3 py-1 bg-red-50 text-red-500 text-xs rounded border border-red-200 hover:bg-red-100"
+                >
+                  刪除
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {employees.length === 0 && (

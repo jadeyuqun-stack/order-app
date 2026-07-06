@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { createEmployee, getAllEmployees } from '@/lib/queries';
 
 export async function GET() {
@@ -12,4 +13,15 @@ export async function POST(request: Request) {
   }
   createEmployee(name, department || '');
   return NextResponse.json(getAllEmployees());
+}
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
+
+  db.prepare('DELETE FROM orders WHERE employee_id = ?').run(id);
+  db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+
+  return NextResponse.json({ success: true });
 }

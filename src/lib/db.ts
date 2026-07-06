@@ -4,7 +4,7 @@ import path from 'path';
 const dbPath = path.join(process.cwd(), 'data.db');
 const db = new Database(dbPath);
 
-db.pragma('journal_mode = wal');
+db.pragma('journal_mode = WAL');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS stores (
@@ -41,6 +41,13 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS admins (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
     daily_order_id TEXT NOT NULL,
@@ -53,5 +60,17 @@ db.exec(`
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
   );
 `);
+
+// Create default admin (username: admin, password: admin123)
+const adminExists = db.prepare("SELECT COUNT(*) as cnt FROM admins WHERE username = ?").get('admin');
+if ((adminExists as any).cnt === 0) {
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256').update('admin123').digest('hex');
+  db.prepare('INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)').run(
+    require('uuid').v4(),
+    'admin',
+    hash
+  );
+}
 
 export { db };
