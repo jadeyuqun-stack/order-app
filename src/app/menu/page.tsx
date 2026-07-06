@@ -1,201 +1,118 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  store_name: string;
-}
-
-interface CartItem extends MenuItem {
-  quantity: number;
-}
-
 export default function MenuPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState('');
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [dishName, setDishName] = useState('');
+  const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('1');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const eid = localStorage.getItem('employeeId') || '';
-    setEmployeeId(eid);
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeeName, setEmployeeName] = useState('');
 
-    Promise.all([
-      fetch('/api/daily-orders').then((r) => r.json()),
-      fetch('/api/menu-items').then((r) => r.json()),
-    ]).then(([ordersData, itemsData]) => {
-      setActiveOrderId(ordersData.active?.id || null);
-      setMenuItems(itemsData);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+  useEffect(() => {
+    setEmployeeId(localStorage.getItem('employeeId') || '');
+    setEmployeeName(localStorage.getItem('employeeName') || '');
   }, []);
 
-  const addToCart = (item: MenuItem) => {
-    setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
-      if (existing) {
-        return prev.map((c) => (c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
-      }
-      return [...prev, { ...item, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (itemId: string) => {
-    setCart((prev) => {
-      const existing = prev.find((c) => c.id === itemId);
-      if (existing && existing.quantity > 1) {
-        return prev.map((c) => (c.id === itemId ? { ...c, quantity: c.quantity - 1 } : c));
-      }
-      return prev.filter((c) => c.id !== itemId);
-    });
-  };
-
-  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  useEffect(() => {
+    fetch('/api/daily-orders')
+      .then((r) => r.json())
+      .then((data) => {
+        setActiveOrder(data.active);
+        if (data.active) {
+          fetch(`/api/orders?dailyOrderId=${data.active.id}&employeeId=${employeeId}`)
+            .then((r) => r.json())
+            .then(setMyOrders);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [employeeId]);
 
   const handleSubmit = async () => {
-    if (!activeOrderId || !employeeId) return;
-    for (const item of cart) {
-      await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dailyOrderId: activeOrderId,
-          employeeId,
-          menuItemId: item.id,
-          quantity: item.quantity,
-        }),
-      });
-    }
+    if (!activeOrder || !employeeId || !dishName || !price) return;
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dailyOrderId: activeOrder.id,
+        employeeId,
+        dishName,
+        price: Number(price),
+        quantity: Number(quantity) || 1,
+      }),
+    });
     setSubmitted(true);
-    setCart([]);
+    setDishName(''); setPrice(''); setQuantity('1');
+    // Refresh orders
+    fetch(`/api/orders?dailyOrderId=${activeOrder.id}&employeeId=${employeeId}`)
+      .then((r) => r.json())
+      .then(setMyOrders);
   };
 
   if (loading) return <div className="text-center py-12 text-gray-400">載入中...</div>;
-  if (!activeOrderId) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">目前沒有開放點餐</p>
-        <p className="text-gray-400 mt-2">請等待行政人員設定今日店家</p>
-      </div>
-    );
+  if (!activeOrder) {
+    return <div className="text-center py-12 text-gray-500">目前沒有開放點餐</div>;
   }
   if (submitted) {
     return (
       <div className="text-center py-16">
         <div className="text-6xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold text-green-600 mb-2">訂餐成功！</h2>
-        <p className="text-gray-500">您的訂單已送出，感謝您的點餐</p>
-        <button
-          onClick={() => setSubmitted(false)}
-          className="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700"
-        >
-          繼續瀏覽
-        </button>
+        <h2 className="text-2xl font-bold text-green-600 mb-2">送出成功！</h2>
+        <p className="text-gray-500">繼續添加餐點或返回首頁</p>
+        <div className="mt-6 flex gap-3 justify-center">
+          <button onClick={() => setSubmitted(false)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">繼續添加</button>
+          <a href="/" className="px-6 py-2 border rounded-lg hover:bg-gray-50">回首頁</a>
+        </div>
       </div>
     );
   }
 
-  const categories = [...new Set(menuItems.map((item) => item.store_name + (item.category ? ' - ' + item.category : '')))];
-
   return (
-    <div className="flex gap-6">
-      {/* Menu */}
-      <div className="flex-1">
-        <h2 className="text-xl font-bold mb-4">📋 今日菜單</h2>
-        {categories.map((cat) => {
-          const catItems = menuItems.filter(
-            (item) => item.store_name + (item.category ? ' - ' + item.category : '') === cat
-          );
-          return (
-            <div key={cat} className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">{cat}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {catItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="flex items-center justify-between p-4 bg-white rounded-lg border border-border hover:border-primary hover:shadow-sm transition-all text-left"
-                  >
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-500">{item.store_name}</p>
-                    </div>
-                    <p className="font-semibold text-primary">NT${item.price}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="text-sm text-blue-600">今日餐廳：<strong>{activeOrder.restaurant_name}</strong></p>
+        <p className="text-sm text-blue-500">截止時間：{activeOrder.order_deadline}</p>
       </div>
 
-      {/* Cart Sidebar */}
-      <div className="w-80 shrink-0">
-        <div className="sticky top-20 bg-white rounded-xl border border-border p-4">
-          <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-            🛒 我的訂單
-            {cart.length > 0 && (
-              <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{cart.reduce((s, c) => s + c.quantity, 0)}</span>
-            )}
-          </h3>
-
-          {cart.length === 0 ? (
-            <p className="text-gray-400 text-sm py-4 text-center">尚未選擇任何餐點</p>
-          ) : (
-            <>
-              <div className="space-y-2 max-h-80 overflow-y-auto mb-4">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500">NT${item.price}</p>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2">
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-7 h-7 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm"
-                      >
-                        −
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => addToCart(item)}
-                        className="w-7 h-7 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t pt-3 mb-3">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>合計</span>
-                  <span className="text-primary">NT${totalAmount}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={!employeeId}
-                className={`w-full py-3 rounded-lg font-semibold transition-colors ${
-                  employeeId
-                    ? 'bg-primary text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {!employeeId ? '請先選擇員工身份' : '送出訂單'}
-              </button>
-            </>
-          )}
+      <div className="bg-white rounded-xl border p-6 space-y-4">
+        <h2 className="text-lg font-bold">填寫你的餐點</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <input type="text" value={dishName} onChange={(e) => setDishName(e.target.value)} placeholder="菜色名稱" className="px-4 py-2 border rounded-lg" />
+          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="價格" className="px-4 py-2 border rounded-lg" />
+          <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="數量" min={1} className="px-4 py-2 border rounded-lg" />
+          <span className="text-sm text-gray-400 self-center">已選：{employeeName || '(請先在首頁選擇身份)'}</span>
         </div>
+        <button
+          onClick={handleSubmit}
+          disabled={!employeeId || !dishName || !price}
+          className="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+        >
+          加入訂單
+        </button>
       </div>
+
+      {myOrders.length > 0 && (
+        <div className="bg-white rounded-xl border p-4">
+          <h3 className="font-semibold mb-2">我的訂單</h3>
+          <div className="divide-y">
+            {myOrders.map((o) => (
+              <div key={o.id} className="flex justify-between py-2 text-sm">
+                <span>{o.dish_name} x{o.quantity}</span>
+                <span className="font-medium">NT${o.price * o.quantity}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between pt-2 mt-2 border-t font-bold">
+            <span>小計</span>
+            <span className="text-primary">NT${myOrders.reduce((s, o) => s + o.price * o.quantity, 0)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

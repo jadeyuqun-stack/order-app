@@ -1,27 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createDailyOrder, getDailyOrders, getActiveDailyOrder, closeDailyOrder, getAllStores } from '@/lib/queries';
+import { createDailyOrder, getDailyOrders, getActiveDailyOrder, closeDailyOrder } from '@/lib/queries';
 
 export async function GET() {
-  const active = getActiveDailyOrder();
-  const all = getDailyOrders();
-  return NextResponse.json({ active, dailyOrders: all });
+  return NextResponse.json({ active: getActiveDailyOrder(), dailyOrders: getDailyOrders() });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-
-  // If body has storeName, resolve to storeId
-  if (body.storeName) {
-    const stores = getAllStores();
-    const storeRow = stores.find((s: any) => s.name === body.storeName);
-    if (storeRow) body.storeId = (storeRow as any).id;
-  }
-
-  const { orderDate, storeId, deadline } = body;
-  if (!orderDate || !storeId || !deadline) {
+  const { orderDate, restaurantId, deadline } = await request.json();
+  if (!orderDate || !restaurantId || !deadline) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
-  createDailyOrder(orderDate, storeId, deadline);
+  createDailyOrder(orderDate, restaurantId, deadline);
   return NextResponse.json(getDailyOrders());
 }
 
