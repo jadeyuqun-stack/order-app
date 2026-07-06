@@ -1,0 +1,70 @@
+'use client';
+import { useState } from 'react';
+
+interface Props {
+  employees: any[];
+  setEmployees: (e: any[]) => void;
+  refresh: () => void;
+}
+
+export default function EmployeeManager({ employees, setEmployees, refresh }: Props) {
+  const [name, setName] = useState('');
+  const [department, setDepartment] = useState('');
+
+  const handleAdd = async () => {
+    if (!name.trim()) return;
+    const res = await fetch('/api/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), department: department.trim() }),
+    });
+    const data = await res.json();
+    setEmployees(data);
+    setName('');
+    setDepartment('');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="姓名"
+          className="px-4 py-2 border border-border rounded-lg flex-1 min-w-[120px]"
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        />
+        <input
+          type="text"
+          value={department}
+          onChange={(e) => setDepartment(e.target.value)}
+          placeholder="部門（選填）"
+          className="px-4 py-2 border border-border rounded-lg flex-1 min-w-[120px]"
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        />
+        <button
+          onClick={handleAdd}
+          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700"
+        >
+          新增員工
+        </button>
+      </div>
+
+      <div className="grid gap-2">
+        {employees.map((emp: any) => (
+          <div key={emp.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-border">
+            <div>
+              <span className="font-medium">{emp.name}</span>
+              {emp.department && <span className="text-gray-400 text-sm ml-2">[{emp.department}]</span>}
+            </div>
+            <span className="text-xs text-gray-400">{emp.created_at}</span>
+          </div>
+        ))}
+        {employees.length === 0 && (
+          <p className="text-center text-gray-400 py-8">尚無員工資料</p>
+        )}
+      </div>
+    </div>
+  );
+}
