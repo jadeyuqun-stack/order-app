@@ -46,7 +46,6 @@ export default function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="admin"
               required
             />
           </div>
@@ -57,7 +56,6 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="admin123"
               required
             />
           </div>
@@ -69,10 +67,6 @@ export default function LoginPage() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
-
-        <p className="text-xs text-gray-400 text-center mt-6">
-          預設帳號: admin / 密碼: admin123
-        </p>
       </div>
     </div>
   );

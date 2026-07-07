@@ -9,7 +9,7 @@ export default function Navbar() {
     <nav className="bg-white border-b sticky top-0 z-50">
       <div className="container mx-auto px-4 max-w-6xl flex items-center justify-between h-14">
         <Link href="/" className="text-lg font-bold text-primary flex items-center gap-2">
-          <span className="text-2xl">🍱</span> 公司點餐系統
+          <span className="text-2xl">🍱</span> 玉群環境科技
         </Link>
         <div className="flex gap-1">
           {[

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "公司內部點餐系統",
-  description: "公司內部員工點餐管理系統",
+  title: "玉群環境科技 點餐系統",
+  description: "玉群環境科技 內部員工點餐管理系統",
 };
 
 export default function RootLayout({

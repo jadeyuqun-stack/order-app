@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <div className="text-center py-8">
-        <h1 className="text-3xl font-bold mb-2">公司內部點餐系統</h1>
+        <h1 className="text-3xl font-bold mb-2">玉群環境科技 點餐系統</h1>
         <p className="text-gray-500">每日精選餐廳，員工自主填寫</p>
       </div>
 
