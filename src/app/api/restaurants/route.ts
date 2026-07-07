@@ -17,6 +17,7 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
+  db.prepare('DELETE FROM daily_orders WHERE restaurant_id = ?').run(id);
   db.prepare('DELETE FROM restaurants WHERE id = ?').run(id);
   return NextResponse.json({ success: true });
 }
