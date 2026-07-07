@@ -19,9 +19,17 @@ interface OrderItem {
   quantity: number;
 }
 
+interface OrderSummary {
+  dish_name: string;
+  quantity: number;
+  price: number;
+  count: number;
+}
+
 export default function HomePage() {
   const [activeOrder, setActiveOrder] = useState<DailyOrder | null>(null);
   const [todayOrders, setTodayOrders] = useState<OrderItem[]>([]);
+  const [orderSummary, setOrderSummary] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +40,17 @@ export default function HomePage() {
     ]).then(([ordersData, todayData]) => {
       setActiveOrder(ordersData.active || null);
       setTodayOrders(todayData);
+
+      // Group by dish_name + quantity + price
+      const grouped: Record<string, OrderSummary> = {};
+      for (const o of todayData) {
+        const key = `${o.dish_name}|${o.quantity}|${o.price}`;
+        if (!grouped[key]) {
+          grouped[key] = { dish_name: o.dish_name, quantity: o.quantity, price: o.price, count: 0 };
+        }
+        grouped[key].count++;
+      }
+      setOrderSummary(Object.values(grouped));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -73,6 +92,45 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Order Summary */}
+      {orderSummary.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">📊 訂單匯總</h3>
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left p-3">菜色</th>
+                  <th className="text-right p-3">數量</th>
+                  <th className="text-right p-3">單價</th>
+                  <th className="text-right p-3">訂單數</th>
+                  <th className="text-right p-3">小計</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {orderSummary.map((s, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="p-3 font-medium">{s.dish_name}</td>
+                    <td className="p-3 text-right">{s.quantity}</td>
+                    <td className="p-3 text-right">NT${s.price}</td>
+                    <td className="p-3 text-right">{s.count} 個訂單</td>
+                    <td className="p-3 text-right font-semibold">NT${s.price * s.quantity * s.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 border-t font-semibold">
+                <tr>
+                  <td colSpan={3} className="p-3 text-right">合計</td>
+                  <td className="p-3 text-right">{todayOrders.length} 筆</td>
+                  <td className="p-3 text-right text-primary">NT${todayOrders.reduce((s, o) => s + o.price * o.quantity, 0)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed list */}
       {todayOrders.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">📋 今日訂購狀況（{todayOrders.length} 筆）</h3>
