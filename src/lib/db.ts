@@ -10,7 +10,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     photo_url TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now', '+8 hours'))
   );
 
   CREATE TABLE IF NOT EXISTS daily_orders (
@@ -19,7 +19,7 @@ db.exec(`
     restaurant_id TEXT NOT NULL,
     order_deadline TEXT NOT NULL,
     status TEXT DEFAULT 'open',
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT (datetime('now', '+8 hours')),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
   );
 
@@ -27,7 +27,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     department TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now', '+8 hours'))
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -38,7 +38,7 @@ db.exec(`
     dish_name TEXT NOT NULL,
     price INTEGER NOT NULL,
     quantity INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT (datetime('now', '+8 hours')),
     FOREIGN KEY (daily_order_id) REFERENCES daily_orders(id),
     FOREIGN KEY (employee_id) REFERENCES employees(id)
   );
@@ -47,7 +47,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now', '+8 hours'))
   );
 `);
 

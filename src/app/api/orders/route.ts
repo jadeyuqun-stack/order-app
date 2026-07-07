@@ -4,10 +4,14 @@ import { db } from '@/lib/db';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get('date');
+  const sortBy = searchParams.get('sortBy');
   const dailyOrderId = searchParams.get('dailyOrderId');
   const name = searchParams.get('name');
 
   if (date) {
+    const orderBy = sortBy === 'dish'
+      ? 'o.dish_name, COALESCE(e.name, o.employee_name)'
+      : 'e.department, COALESCE(e.name, o.employee_name), o.dish_name';
     const orders = db.prepare(`
       SELECT o.*, e.name as employee_name, e.department, r.name as restaurant_name
       FROM orders o
@@ -15,13 +19,12 @@ export async function GET(request: Request) {
       JOIN daily_orders d ON o.daily_order_id = d.id
       JOIN restaurants r ON d.restaurant_id = r.id
       WHERE d.order_date = ?
-      ORDER BY e.department, COALESCE(e.name, o.employee_name), o.dish_name
+      ORDER BY ${orderBy}
     `).all(date);
     return NextResponse.json(orders);
   }
 
   if (dailyOrderId && name) {
-    // First try to find employee by name
     const emp = db.prepare('SELECT * FROM employees WHERE name = ?').get(name);
     const empId = emp ? (emp as any).id : null;
     if (empId) {
@@ -34,7 +37,6 @@ export async function GET(request: Request) {
       `).all(dailyOrderId, empId);
       return NextResponse.json(orders);
     }
-    // Name not in employee list yet — show orders with this name
     const orders = db.prepare(`
       SELECT o.*, r.name as restaurant_name
       FROM orders o
@@ -51,7 +53,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { dailyOrderId, employeeId, name, dishName, price, quantity } = await request.json();
 
-  // Auto-create employee record if name not found
   let finalEmpId = employeeId;
   if (!finalEmpId && name) {
     const emp = db.prepare('SELECT id FROM employees WHERE name = ?').get(name);

@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import RestaurantManager from './RestaurantManager';
 import DailyOrderManager from './DailyOrderManager';
-import EmployeeManager from './EmployeeManager';
 import OrderManager from './OrderManager';
 import ReportManager from './ReportManager';
 
@@ -11,10 +10,9 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'restaurants' | 'daily' | 'employees' | 'orders' | 'report'>('restaurants');
+  const [tab, setTab] = useState<'restaurants' | 'daily' | 'orders' | 'report'>('restaurants');
   const [stores, setStores] = useState<any[]>([]);
   const [dailyOrders, setDailyOrders] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
   const [report, setReport] = useState<any[]>([]);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
@@ -34,11 +32,9 @@ export default function AdminDashboard() {
     Promise.all([
       fetch('/api/restaurants').then((r) => r.json()).catch(() => []),
       fetch('/api/daily-orders').then((r) => r.json()).catch(() => ({ dailyOrders: [] })).then((d) => d.dailyOrders || []),
-      fetch('/api/employees').then((r) => r.json()).catch(() => []),
-    ]).then(([s, d, e]) => {
+    ]).then(([s, d]) => {
       setStores(s);
       setDailyOrders(d);
-      setEmployees(e);
     });
   };
 
@@ -50,7 +46,6 @@ export default function AdminDashboard() {
     if (!data) return;
     const lines: string[] = [];
 
-    // Sheet 1: 訂單明細
     lines.push('Sheet: 訂單明細');
     const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
     lines.push(detailHeaders.join(','));
@@ -65,7 +60,6 @@ export default function AdminDashboard() {
       });
     }
 
-    // Sheet 2: 總會總
     lines.push('');
     lines.push('Sheet: 總會總');
     const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
@@ -97,7 +91,6 @@ export default function AdminDashboard() {
         {[
           { key: 'restaurants', label: '餐廳' },
           { key: 'daily', label: '開單' },
-          { key: 'employees', label: '人員' },
           { key: 'orders', label: '訂單' },
           { key: 'report', label: '月報' },
         ].map((t) => (
@@ -115,7 +108,6 @@ export default function AdminDashboard() {
 
       {tab === 'restaurants' && <RestaurantManager stores={stores} setStores={setStores} refresh={loadData} />}
       {tab === 'daily' && <DailyOrderManager dailyOrders={dailyOrders} refresh={loadData} />}
-      {tab === 'employees' && <EmployeeManager employees={employees} setEmployees={setEmployees} refresh={loadData} />}
       {tab === 'orders' && <OrderManager refresh={loadData} />}
       {tab === 'report' && (
         <ReportManager report={report} setReport={setReport} year={reportYear} setYear={setReportYear} month={reportMonth} setMonth={setReportMonth} exportCSV={handleExportCSV} />

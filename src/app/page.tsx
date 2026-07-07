@@ -50,7 +50,8 @@ export default function HomePage() {
         }
         grouped[key].count++;
       }
-      setOrderSummary(Object.values(grouped));
+      // Sort by dish name
+      setOrderSummary(Object.values(grouped).sort((a, b) => a.dish_name.localeCompare(b.dish_name)));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
