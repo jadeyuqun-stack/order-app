@@ -1,12 +1,6 @@
-import { db } from './src/lib/db';
 import { createEmployee } from './src/lib/queries';
 
 console.log('Seeding demo data...\n');
-
-db.exec('DELETE FROM orders');
-db.exec('DELETE FROM daily_orders');
-db.exec('DELETE FROM restaurants');
-db.exec('DELETE FROM employees');
 
 createEmployee('王小明', '技術部');
 createEmployee('李美玲', '業務部');
