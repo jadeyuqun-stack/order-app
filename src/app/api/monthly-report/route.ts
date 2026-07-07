@@ -10,19 +10,7 @@ export async function GET(request: Request) {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
   const end = month === 12 ? `${year + 1}-01-01` : `${year}-${month + 1 < 10 ? '0' + (month + 1) : month + 1}-01`;
 
-  // Per-person summary
-  const summary = db.prepare(`
-    SELECT e.id, e.name, e.department,
-           SUM(o.price * o.quantity) as total_amount,
-           COUNT(o.id) as order_count
-    FROM orders o
-    JOIN employees e ON o.employee_id = e.id
-    JOIN daily_orders d ON o.daily_order_id = d.id
-    WHERE d.order_date >= ? AND d.order_date < ?
-    GROUP BY e.id ORDER BY e.department, e.name
-  `).all(start, end);
-
-  // Detail lines
+  // Detail lines (per-order)
   const details = db.prepare(`
     SELECT d.order_date, d.order_deadline, r.name as restaurant_name,
            e.name as employee_name, e.department,
@@ -35,5 +23,17 @@ export async function GET(request: Request) {
     ORDER BY d.order_date, e.department, e.name
   `).all(start, end);
 
-  return NextResponse.json({ summary, details });
+  // Per-person cumulative (totals)
+  const totals = db.prepare(`
+    SELECT e.name, e.department,
+           SUM(o.price * o.quantity) as total_amount,
+           COUNT(o.id) as order_count
+    FROM orders o
+    JOIN employees e ON o.employee_id = e.id
+    JOIN daily_orders d ON o.daily_order_id = d.id
+    WHERE d.order_date >= ? AND d.order_date < ?
+    GROUP BY e.id ORDER BY e.department, e.name
+  `).all(start, end);
+
+  return NextResponse.json({ summary: totals, details, totalLines: details.length });
 }

@@ -47,15 +47,38 @@ export default function AdminDashboard() {
   if (loading) return <div className="text-center py-12 text-gray-400">載入中...</div>;
 
   const handleExportCSV = (data: any) => {
-    if (!data || !data.details || data.details.length === 0) return;
-    const headers = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
-    const rows = data.details.map((d: any) => [d.order_date, d.order_time, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity]);
-    const csv = [headers, ...rows].map((row: any) => row.join(',')).join('\n');
+    if (!data) return;
+    const lines: string[] = [];
+
+    // Sheet 1: 訂單明細
+    lines.push('Sheet: 訂單明細');
+    const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
+    lines.push(detailHeaders.join(','));
+    if (data.details) {
+      data.details.forEach((d: any) => {
+        const datePart = d.order_date ? d.order_date.substring(5).replace('-', '/') : '';
+        const timePart = d.order_time ? d.order_time.substring(11, 16) : '';
+        lines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
+      });
+    }
+
+    // Sheet 2: 總會總
+    lines.push('');
+    lines.push('Sheet: 總會總');
+    const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
+    lines.push(totalHeaders.join(','));
+    if (data.summary) {
+      data.summary.forEach((r: any) => {
+        lines.push([r.department || '-', r.name, r.order_count, r.total_amount].join(','));
+      });
+    }
+
+    const csv = lines.join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `訂餐明細_${reportYear}年${reportMonth}月.csv`;
+    a.download = `玉群環境科技_訂餐明細_${reportYear}年${reportMonth}月.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

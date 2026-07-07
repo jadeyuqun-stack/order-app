@@ -1,6 +1,23 @@
 'use client';
 import { useState } from 'react';
 
+function formatDate(dateStr: string) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function formatTime(timeStr: string) {
+  if (!timeStr) return '-';
+  // Format: "2026-07-07 13:30" or similar
+  const parts = timeStr.split(' ');
+  if (parts.length > 1) {
+    const t = parts[1].substring(0, 5);
+    return t;
+  }
+  return timeStr.substring(0, 5);
+}
+
 export default function ReportManager({ report, setReport, year, setYear, month, setMonth, exportCSV }: any) {
   const [loading, setLoading] = useState(false);
 
@@ -37,9 +54,9 @@ export default function ReportManager({ report, setReport, year, setYear, month,
 
       {report && report.summary && report.summary.length > 0 && (
         <div className="space-y-6">
-          {/* Summary */}
+          {/* Totals sheet */}
           <div>
-            <h4 className="font-semibold mb-2">每人累計金額</h4>
+            <h4 className="font-semibold mb-2">💰 總會總（每人當月累積）</h4>
             <table className="w-full text-sm bg-white rounded-lg border">
               <thead className="bg-gray-50 border-b">
                 <tr>
@@ -62,13 +79,14 @@ export default function ReportManager({ report, setReport, year, setYear, month,
             </table>
           </div>
 
-          {/* Detail */}
+          {/* Detail sheet */}
           <div>
-            <h4 className="font-semibold mb-2">明細</h4>
+            <h4 className="font-semibold mb-2">📋 訂單明細（{report.totalLines} 筆）</h4>
             <table className="w-full text-sm bg-white rounded-lg border">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="text-left p-3">日期</th>
+                  <th className="text-left p-3">時間</th>
                   <th className="text-left p-3">餐廳</th>
                   <th className="text-left p-3">姓名</th>
                   <th className="text-left p-3">菜色</th>
@@ -80,7 +98,8 @@ export default function ReportManager({ report, setReport, year, setYear, month,
               <tbody>
                 {report.details.map((d: any, i: number) => (
                   <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{d.order_date}<br/><span className="text-xs text-gray-400">{d.order_time}</span></td>
+                    <td className="p-3">{formatDate(d.order_date)}</td>
+                    <td className="p-3">{formatTime(d.order_time)}</td>
                     <td className="p-3">{d.restaurant_name}</td>
                     <td className="p-3">{d.employee_name}</td>
                     <td className="p-3">{d.dish_name}</td>
