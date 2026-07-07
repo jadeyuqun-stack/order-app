@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { createDailyOrder, getDailyOrders, getActiveDailyOrder, closeDailyOrder } from '@/lib/queries';
 
 export async function GET() {
@@ -11,6 +12,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
   createDailyOrder(orderDate, restaurantId, deadline);
+  return NextResponse.json(getDailyOrders());
+}
+
+export async function PUT(request: Request) {
+  const { id, deadline } = await request.json();
+  if (!id || !deadline) return NextResponse.json({ error: '缺少欄位' }, { status: 400 });
+  db.prepare('UPDATE daily_orders SET order_deadline = ? WHERE id = ?').run(deadline, id);
   return NextResponse.json(getDailyOrders());
 }
 

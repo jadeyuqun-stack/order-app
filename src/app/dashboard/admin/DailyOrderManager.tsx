@@ -1,15 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DailyOrderManager({ dailyOrders, refresh }: any) {
   const [restaurantId, setRestaurantId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [deadline, setDeadline] = useState('');
   const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDeadline, setEditDeadline] = useState('');
 
-  useState(() => {
+  useEffect(() => {
     fetch('/api/restaurants').then((r) => r.json()).then(setRestaurants).catch(() => {});
-  });
+  }, []);
 
   const handleCreate = async () => {
     if (!restaurantId || !orderDate || !deadline) return;
@@ -20,6 +22,22 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
     });
     refresh();
     setDeadline('');
+  };
+
+  const startEdit = (order: any) => {
+    setEditingId(order.id);
+    setEditDeadline(order.order_deadline);
+  };
+
+  const handleSaveDeadline = async (id: string) => {
+    // Use daily-orders endpoint with PUT to update deadline
+    await fetch('/api/daily-orders', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, deadline: editDeadline }),
+    });
+    setEditingId(null);
+    refresh();
   };
 
   return (
@@ -52,11 +70,24 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
             <div>
               <span className="font-medium">{o.restaurant_name}</span>
               <span className="text-gray-500 ml-2 text-sm">{o.order_date}</span>
-              <span className="text-gray-400 ml-2 text-xs">截止 {o.order_deadline}</span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${o.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-              {o.status === 'open' ? '點餐中' : '已截止'}
-            </span>
+            <div className="flex items-center gap-3">
+              {editingId === o.id ? (
+                <div className="flex items-center gap-1">
+                  <input type="datetime-local" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="px-2 py-1 border rounded text-sm" />
+                  <button onClick={() => handleSaveDeadline(o.id)} className="px-2 py-1 bg-green-500 text-white text-xs rounded">存</button>
+                  <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-gray-200 text-xs rounded">取</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-xs">截止 {o.order_deadline}</span>
+                  <button onClick={() => startEdit(o)} className="text-xs text-blue-500 hover:text-blue-700 underline">修改截止</button>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${o.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                    {o.status === 'open' ? '點餐中' : '已截止'}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         ))}
         {dailyOrders.length === 0 && <p className="text-center text-gray-400 py-8">尚無開單記錄</p>}

@@ -33,7 +33,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
     daily_order_id TEXT NOT NULL,
-    employee_id TEXT NOT NULL,
+    employee_id TEXT,
+    employee_name TEXT,
     dish_name TEXT NOT NULL,
     price INTEGER NOT NULL,
     quantity INTEGER DEFAULT 1,

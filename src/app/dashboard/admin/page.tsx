@@ -46,11 +46,11 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="text-center py-12 text-gray-400">載入中...</div>;
 
-  const handleExportCSV = () => {
-    if (report.length === 0) return;
-    const headers = ['部門', '姓名', '訂餐次數', '總金額'];
-    const rows = report.map((r: any) => [r.department || '-', r.name, r.order_count, r.total_amount]);
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
+  const handleExportCSV = (data: any) => {
+    if (!data || !data.details || data.details.length === 0) return;
+    const headers = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
+    const rows = data.details.map((d: any) => [d.order_date, d.order_time, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity]);
+    const csv = [headers, ...rows].map((row: any) => row.join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
