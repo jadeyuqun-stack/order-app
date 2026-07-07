@@ -63,7 +63,7 @@ export default function HomePage() {
           {activeOrder.restaurant_photo && (
             <div className="bg-white rounded-xl border p-4">
               <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-              <img src={activeOrder.restaurant_photo} alt="菜單" className="max-h-80 rounded-lg object-contain mx-auto" />
+              <img src={activeOrder.restaurant_photo} alt="菜單" className="w-full rounded-lg object-contain" />
             </div>
           )}
         </div>

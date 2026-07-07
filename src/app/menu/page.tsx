@@ -84,6 +84,13 @@ export default function MenuPage() {
         <p className="text-sm text-blue-500">截止時間：{activeOrder.order_deadline}</p>
       </div>
 
+      {activeOrder.restaurant_photo && (
+        <div className="bg-white rounded-xl border p-4">
+          <h3 className="font-semibold mb-2">📸 菜單照片</h3>
+          <img src={activeOrder.restaurant_photo} alt="菜單" className="w-full rounded-lg object-contain" />
+        </div>
+      )}
+
       {/* Name Input */}
       <div className="bg-white rounded-xl border p-4">
         <label className="block text-sm font-medium mb-1">我的姓名</label>

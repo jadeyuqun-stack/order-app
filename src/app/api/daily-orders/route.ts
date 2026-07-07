@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { createDailyOrder, getDailyOrders, getActiveDailyOrder, closeDailyOrder } from '@/lib/queries';
 
 export async function GET() {
+  // Auto-close expired orders
+  db.prepare("UPDATE daily_orders SET status = 'closed' WHERE status = 'open' AND order_deadline <= datetime('now')").run();
   return NextResponse.json({ active: getActiveDailyOrder(), dailyOrders: getDailyOrders() });
 }
 
@@ -23,8 +25,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
+  const { id } = await request.json();
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
   closeDailyOrder(id);
   return NextResponse.json({ success: true });

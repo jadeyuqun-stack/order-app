@@ -14,10 +14,10 @@ export function createDailyOrder(orderDate: string, restaurantId: string, deadli
   db.prepare('INSERT INTO daily_orders (id, order_date, restaurant_id, order_deadline) VALUES (?, ?, ?, ?)').run(uuidv4(), orderDate, restaurantId, deadline);
 }
 export function getDailyOrders() {
-  return db.prepare(`SELECT d.*, r.name as restaurant_name FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id ORDER BY d.order_date DESC`).all();
+  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id ORDER BY d.order_date DESC`).all();
 }
 export function getActiveDailyOrder() {
-  return db.prepare(`SELECT d.*, r.name as restaurant_name FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > datetime('now') ORDER BY d.order_date DESC LIMIT 1`).get();
+  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > datetime('now') ORDER BY d.order_date DESC LIMIT 1`).get();
 }
 export function closeDailyOrder(id: string) {
   db.prepare("UPDATE daily_orders SET status = 'closed' WHERE id = ?").run(id);
