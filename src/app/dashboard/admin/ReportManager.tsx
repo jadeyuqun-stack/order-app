@@ -3,8 +3,8 @@ import { useState } from 'react';
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '-';
-  const d = new Date(dateStr + 'T00:00:00');
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+  const [y, m, d] = dateStr.split('-');
+  return `${parseInt(m)}月${parseInt(d)}日`;
 }
 
 function formatTime(timeStr: string) {

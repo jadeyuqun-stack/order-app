@@ -56,7 +56,10 @@ export default function AdminDashboard() {
     lines.push(detailHeaders.join(','));
     if (data.details) {
       data.details.forEach((d: any) => {
-        const datePart = d.order_date ? d.order_date.substring(5).replace('-', '/') : '';
+        const datePart = d.order_date ? (() => {
+          const [m, day] = d.order_date.split('-').slice(1, 3);
+          return `${parseInt(m)}月${parseInt(day)}日`;
+        })() : '';
         const timePart = d.order_time ? d.order_time.substring(11, 16) : '';
         lines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
       });
