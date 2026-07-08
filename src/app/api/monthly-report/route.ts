@@ -6,5 +6,5 @@ export async function GET(request: Request) {
   const year = Number(searchParams.get('year'));
   const month = Number(searchParams.get('month'));
   if (!year || !month) return NextResponse.json({ error: '缺少年份或月份' }, { status: 400 });
-  return NextResponse.json(getMonthlyReport(year, month));
+  return NextResponse.json(await getMonthlyReport(year, month));
 }

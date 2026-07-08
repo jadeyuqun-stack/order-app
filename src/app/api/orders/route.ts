@@ -9,16 +9,16 @@ export async function GET(request: Request) {
   const name = searchParams.get('name');
 
   if (date) {
-    const orders = getAllOrdersForDate(date, sortBy || 'name');
+    const orders = await getAllOrdersForDate(date, sortBy || 'name');
     return NextResponse.json(orders);
   }
 
   if (dailyOrderId && name) {
-    const employees: any = getAllEmployees();
+    const employees: any = await getAllEmployees();
     const emp = employees.find((e: any) => e.name === name);
     const empId = emp ? emp.id : null;
     if (empId) {
-      const orders = getEmployeeOrders(dailyOrderId, empId);
+      const orders = await getEmployeeOrders(dailyOrderId, empId);
       return NextResponse.json(orders);
     }
     return NextResponse.json([]);
@@ -32,13 +32,13 @@ export async function POST(request: Request) {
 
   let finalEmpId = employeeId;
   if (!finalEmpId && name) {
-    const employees: any = getAllEmployees();
+    const employees: any = await getAllEmployees();
     const emp = employees.find((e: any) => e.name === name);
     if (emp) {
       finalEmpId = emp.id;
     } else {
-      createEmployee(name, '');
-      const newEmps: any = getAllEmployees();
+      await createEmployee(name, '');
+      const newEmps: any = await getAllEmployees();
       const newEmp = newEmps.find((e: any) => e.name === name);
       finalEmpId = newEmp?.id || '';
     }
@@ -48,14 +48,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
 
-  placeOrder(dailyOrderId, finalEmpId || '', dishName, Number(price), Number(quantity) || 1);
+  await placeOrder(dailyOrderId, finalEmpId || '', dishName, Number(price), Number(quantity) || 1);
   return NextResponse.json({ success: true });
 }
 
 export async function PUT(request: Request) {
   const { id, quantity } = await request.json();
   if (!id || quantity === undefined) return NextResponse.json({ error: '缺少欄位' }, { status: 400 });
-  updateOrder(id, quantity);
+  await updateOrder(id, quantity);
   return NextResponse.json({ success: true });
 }
 
@@ -63,6 +63,6 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
-  deleteOrder(id);
+  await deleteOrder(id);
   return NextResponse.json({ success: true });
 }
