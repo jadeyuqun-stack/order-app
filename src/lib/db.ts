@@ -1,114 +1,63 @@
-import mariadb from 'mariadb';
+import Database from 'better-sqlite3';
+import path from 'path';
 
-const pool = mariadb.createPool({
-  host: process.env.DB_HOST || '192.168.1.241',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'JAde123456~~',
-  database: process.env.DB_NAME || 'food_order',
-  connectionLimit: 5,
-});
+const dbPath = path.join(process.cwd(), 'data.db');
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
 
-async function initDb() {
-  const conn = await pool.getConnection();
-  try {
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS restaurants (
-        id VARCHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        photo_url TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS restaurants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    photo_url TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS daily_orders (
-        id VARCHAR(36) PRIMARY KEY,
-        order_date DATE NOT NULL,
-        restaurant_id VARCHAR(36) NOT NULL,
-        order_deadline DATETIME NOT NULL,
-        status VARCHAR(20) DEFAULT 'open',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS daily_orders (
+    id TEXT PRIMARY KEY,
+    order_date TEXT NOT NULL,
+    restaurant_id TEXT NOT NULL,
+    order_deadline TEXT NOT NULL,
+    status TEXT DEFAULT 'open',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
+  );
 
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS employees (
-        id VARCHAR(36) PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        department VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS employees (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    department TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id VARCHAR(36) PRIMARY KEY,
-        daily_order_id VARCHAR(36) NOT NULL,
-        employee_id VARCHAR(36),
-        employee_name VARCHAR(100),
-        dish_name VARCHAR(255) NOT NULL,
-        price INT NOT NULL,
-        quantity INT DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (daily_order_id) REFERENCES daily_orders(id),
-        FOREIGN KEY (employee_id) REFERENCES employees(id)
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    daily_order_id TEXT NOT NULL,
+    employee_id TEXT,
+    employee_name TEXT,
+    dish_name TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (daily_order_id) REFERENCES daily_orders(id),
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+  );
 
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS admins (
-        id VARCHAR(36) PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(64) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS admins (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
 
-    const rows = await conn.query(
-      "SELECT COUNT(*) as cnt FROM admins WHERE username = ?",
-      ['admin']
-    );
-    if ((rows[0] as any).cnt === 0) {
-      const crypto = require('crypto');
-      const hash = crypto.createHash('sha256').update('JADE123').digest('hex');
-      await conn.query(
-        'INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)',
-        [require('uuid').v4(), 'admin', hash]
-      );
-    }
-  } finally {
-    conn.release();
-  }
+const adminExists = db.prepare("SELECT COUNT(*) as cnt FROM admins WHERE username = ?").get('admin');
+if ((adminExists as any).cnt === 0) {
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256').update('JADE123').digest('hex');
+  db.prepare('INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)').run(
+    require('uuid').v4(), 'admin', hash
+  );
 }
 
-initDb();
-
-export async function query(sql: string, params?: any[]) {
-  const conn = await pool.getConnection();
-  try {
-    return await conn.query(sql, params);
-  } finally {
-    conn.release();
-  }
-}
-
-export async function queryOne(sql: string, params?: any[]) {
-  const conn = await pool.getConnection();
-  try {
-    const rows = await conn.query(sql, params);
-    return (rows as any[])[0] || null;
-  } finally {
-    conn.release();
-  }
-}
-
-export async function execute(sql: string, params?: any[]) {
-  const conn = await pool.getConnection();
-  try {
-    return await conn.query(sql, params);
-  } finally {
-    conn.release();
-  }
-}
+export { db };
