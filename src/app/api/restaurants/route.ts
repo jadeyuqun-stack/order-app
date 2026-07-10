@@ -18,7 +18,24 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
-  db.prepare('DELETE FROM daily_orders WHERE restaurant_id = ?').run(id);
-  db.prepare('DELETE FROM restaurants WHERE id = ?').run(id);
+
+  // Enable FK enforcement
+  db.pragma('foreign_keys = ON');
+
+  try {
+    // Delete orders linked to this restaurant's daily_orders
+    db.prepare(`
+      DELETE FROM orders WHERE daily_order_id IN (
+        SELECT id FROM daily_orders WHERE restaurant_id = ?
+      )
+    `).run(id);
+    // Delete daily_orders for this restaurant
+    db.prepare('DELETE FROM daily_orders WHERE restaurant_id = ?').run(id);
+    // Delete the restaurant
+    db.prepare('DELETE FROM restaurants WHERE id = ?').run(id);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+
   return NextResponse.json({ success: true });
 }
