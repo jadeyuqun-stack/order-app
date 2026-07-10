@@ -18,7 +18,7 @@ export function getDailyOrders() {
 }
 export function getActiveDailyOrder() {
   const now = new Date().toISOString();
-  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND (d.order_deadline || ':00.000Z') > ? ORDER BY d.order_date DESC LIMIT 1`).get(now);
+  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > ? ORDER BY d.order_date DESC LIMIT 1`).get(now);
 }
 export function closeDailyOrder(id: string) {
   db.prepare("UPDATE daily_orders SET status = 'closed' WHERE id = ?").run(id);

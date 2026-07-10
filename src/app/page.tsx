@@ -3,10 +3,15 @@ import { useEffect, useState } from 'react';
 
 function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
-  const parts = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!parts) return '-';
-  const [, , mo, da, h, mi] = parts;
-  return `${parseInt(mo)}月${parseInt(da)}日 ${h}:${mi}`;
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '-';
+  const utcMs = d.getTime();
+  const tw = new Date(utcMs + 8 * 3600000);
+  const mo = tw.getMonth() + 1;
+  const da = tw.getDate();
+  const h = String(tw.getHours()).padStart(2, '0');
+  const m = String(tw.getMinutes()).padStart(2, '0');
+  return `${mo}月${da}日 ${h}:${m}`;
 }
 
 interface DailyOrder {

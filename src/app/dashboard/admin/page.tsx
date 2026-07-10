@@ -55,7 +55,17 @@ export default function AdminDashboard() {
           const [m, day] = d.order_date.split('-').slice(1, 3);
           return `${parseInt(m)}月${parseInt(day)}日`;
         })() : '';
-        const timePart = d.order_time ? d.order_time.substring(11, 16) : '';
+        // Convert UTC time to Taiwan (+8h)
+        let timePart = '-';
+        if (d.order_time) {
+          const t = new Date(d.order_time);
+          if (!isNaN(t.getTime())) {
+            const utcH = t.getUTCHours();
+            const utcM = t.getUTCMinutes();
+            const h = String((utcH + 8) % 24).padStart(2, '0');
+            timePart = `${h}:${String(utcM).padStart(2, '0')}`;
+          }
+        }
         lines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
       });
     }

@@ -1,28 +1,36 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+// Convert UTC ISO deadline to Taiwan time display "07月10日 11:30"
 function formatDeadline(str: string) {
   if (!str) return '-';
-  // Stored deadline is "YYYY-MM-DDTHH:MM" — already Taiwan local time, just display as-is
-  const parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!parts) return str;
-  const [, , mo, da, h, mi] = parts;
-  return `${parseInt(mo)}月${parseInt(da)}日 ${h}:${mi}`;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return '-';
+  // Convert UTC to Taiwan (+8)
+  const utcMs = d.getTime();
+  const tw = new Date(utcMs + 8 * 3600000);
+  const mo = tw.getMonth() + 1;
+  const da = tw.getDate();
+  const h = String(tw.getHours()).padStart(2, '0');
+  const m = String(tw.getMinutes()).padStart(2, '0');
+  return `${mo}月${da}日 ${h}:${m}`;
 }
 
-// Convert stored deadline to datetime-local format "YYYY-MM-DDTHH:MM"
-// Handles both "2026-07-10T11:08" (no TZ) and "2026-07-10T03:08:00.000Z" (UTC ISO)
+// Convert UTC ISO deadline to datetime-local value "YYYY-MM-DDTHH:MM" (Taiwan time)
 function toDatetimeLocal(str: string) {
   if (!str) return '';
-  // Already in datetime-local format? return as-is
+  // Already in datetime-local format?
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
   const d = new Date(str);
-  if (isNaN(d.getTime())) return str.slice(0, 16);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (isNaN(d.getTime())) return '';
+  // Convert UTC to Taiwan (+8)
+  const utcMs = d.getTime();
+  const tw = new Date(utcMs + 8 * 3600000);
+  const y = tw.getFullYear();
+  const m = String(tw.getMonth() + 1).padStart(2, '0');
+  const day = String(tw.getDate()).padStart(2, '0');
+  const hh = String(tw.getHours()).padStart(2, '0');
+  const mm = String(tw.getMinutes()).padStart(2, '0');
   return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 
@@ -65,6 +73,7 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
   };
 
   const handleSaveDeadline = async (id: string) => {
+    if (!editDeadline) return;
     await fetch('/api/daily-orders', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -109,7 +118,20 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
             <div className="flex items-center gap-2">
               {o.status === 'open' && (
                 <>
-                  <button onClick={() => startEdit(o)} className="text-xs text-blue-500 hover:text-blue-700 underline">修改截止</button>
+                  {editingId === o.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="datetime-local"
+                        value={editDeadline}
+                        onChange={(e) => setEditDeadline(e.target.value)}
+                        className="px-2 py-1 border rounded text-xs"
+                      />
+                      <button onClick={() => handleSaveDeadline(o.id)} className="px-2 py-1 bg-green-500 text-white text-xs rounded">存</button>
+                      <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-gray-200 text-xs rounded">取</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => startEdit(o)} className="text-xs text-blue-500 hover:text-blue-700 underline">修改截止</button>
+                  )}
                   <button onClick={() => handleClose(o.id)} className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600">訂購截止</button>
                 </>
               )}
