@@ -104,7 +104,7 @@ export default function MenuPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <p className="text-sm text-blue-600">今日餐廳：<strong>{activeOrder.restaurant_name}</strong></p>
-        <p className="text-sm text-blue-500">截止時間：{activeOrder.order_deadline}</p>
+        <p className="text-sm text-blue-500">截止時間：{formatDeadline(activeOrder.order_deadline)}</p>
       </div>
 
       {activeOrder.restaurant_photo && (
