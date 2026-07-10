@@ -1,15 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-function formatDeadline(isoStr: string) {
-  if (!isoStr) return '-';
-  // Stored deadline is "YYYY-MM-DDTHH:MM" with no timezone — treat as Taiwan (+8) time
-  // Parse manually to avoid server TZ ambiguity
-  const parts = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!parts) return '-';
+function formatDeadline(str: string) {
+  if (!str) return '-';
+  // Stored deadline is "YYYY-MM-DDTHH:MM" — already Taiwan local time, just display as-is
+  const parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!parts) return str;
   const [, , mo, da, h, mi] = parts;
-  const hh = String((parseInt(h) + 8) % 24).padStart(2, '0');
-  return `${parseInt(mo)}月${parseInt(da)}日 ${hh}:${mi}`;
+  return `${parseInt(mo)}月${parseInt(da)}日 ${h}:${mi}`;
 }
 
 // Convert stored deadline to datetime-local format "YYYY-MM-DDTHH:MM"

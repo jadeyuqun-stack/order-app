@@ -6,8 +6,7 @@ function formatDeadline(isoStr: string) {
   const parts = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if (!parts) return '-';
   const [, , mo, da, h, mi] = parts;
-  const hh = String((parseInt(h) + 8) % 24).padStart(2, '0');
-  return `${parseInt(mo)}月${parseInt(da)}日 ${hh}:${mi}`;
+  return `${parseInt(mo)}月${parseInt(da)}日 ${h}:${mi}`;
 }
 
 interface DailyOrder {

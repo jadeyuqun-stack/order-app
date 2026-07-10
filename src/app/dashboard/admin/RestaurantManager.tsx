@@ -10,7 +10,6 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
     if (!name.trim()) return;
     const body: any = { name: name.trim() };
     if (photoFile) {
-      // Simple approach: read as base64 data URL
       const reader = new FileReader();
       const dataUrl = await new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
@@ -37,6 +36,49 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
     refresh();
   };
 
+  const handleExport = async () => {
+    const res = await fetch('/api/restaurants/export');
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `餐廳資料_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      let items: any[];
+      try {
+        items = JSON.parse(text);
+        if (!Array.isArray(items)) items = [items];
+      } catch {
+        setMsg('JSON 格式錯誤');
+        setTimeout(() => setMsg(''), 3000);
+        return;
+      }
+      const res = await fetch('/api/restaurants/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      setStores(data.restaurants || []);
+      setMsg(`匯入成功：${data.imported} 筆，跳過 ${data.skipped} 筆`);
+      setTimeout(() => setMsg(''), 3000);
+      refresh();
+    };
+    input.click();
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-white p-4 rounded-lg border space-y-3">
@@ -53,6 +95,11 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
           <button onClick={handleAdd} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">新增</button>
         </div>
         {msg && <p className="text-green-600 text-sm">{msg}</p>}
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={handleExport} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">匯出餐廳資料</button>
+        <button onClick={handleImport} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">匯入餐廳資料</button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

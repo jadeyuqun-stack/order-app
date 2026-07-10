@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { createRestaurant, getAllRestaurants } from '@/lib/queries';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
   return NextResponse.json(getAllRestaurants());
