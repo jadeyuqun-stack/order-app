@@ -45,7 +45,13 @@ export default function AdminDashboard() {
   const handleExportCSV = (data: any) => {
     if (!data) return;
 
-    // Build detail rows and total rows
+    // Build total rows and detail rows
+    const totalRows: string[][] = [];
+    if (data.summary) {
+      data.summary.forEach((r: any) => {
+        totalRows.push([r.department || '-', r.name, r.order_count, r.total_amount]);
+      });
+    }
     const detailRows: string[][] = [];
     if (data.details) {
       data.details.forEach((d: any) => {
@@ -63,32 +69,26 @@ export default function AdminDashboard() {
             timePart = `${h}:${String(utcM).padStart(2, '0')}`;
           }
         }
-        detailRows.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity]);
-      });
-    }
-    const totalRows: string[][] = [];
-    if (data.summary) {
-      data.summary.forEach((r: any) => {
-        totalRows.push([r.department || '-', r.name, r.order_count, r.total_amount]);
+        detailRows.push([datePart, timePart, d.restaurant_name, d.employee_name, d.dish_name, d.quantity, d.price, d.price * d.quantity]);
       });
     }
 
-    // Determine max rows needed
-    const maxLen = Math.max(detailRows.length, totalRows.length, 1);
+    const maxLen = Math.max(totalRows.length, detailRows.length, 1);
 
-    // Build side-by-side CSV: 訂單明細 (left) | 總彙總 (right)
+    // Build side-by-side CSV: 總彙總 (left A-D) | 明細 (right F-K)
     const csvLines: string[] = [];
-    const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
-    const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
-    csvLines.push([...detailHeaders, ...totalHeaders].join(','));
+    // Title row: 總彙總 on left, 訂餐明細 on right
+    csvLines.push(['7月總彙總', '', '', '', '', '訂餐明細', '', '', '', '', '', '', '', ''].join(','));
+    // Headers: 總彙總 first, then empty column, then 明細 headers
+    csvLines.push([...['部門', '姓名', '訂餐次數', '總金額'], '', ...['日期', '時間', '餐廳', '姓名', '菜色', '數量', '單價', '金額']].join(','));
 
     for (let i = 0; i < maxLen; i++) {
-      const dr = detailRows[i] || [];
       const tr = totalRows[i] || [];
-      // Pad shorter row with empty strings so columns align
-      const paddedDr = [...dr, ...Array(Math.max(0, 9 - dr.length)).fill('')];
+      const dr = detailRows[i] || [];
+      // Pad shorter rows
       const paddedTr = [...tr, ...Array(Math.max(0, 4 - tr.length)).fill('')];
-      csvLines.push([...paddedDr, ...paddedTr].join(','));
+      const paddedDr = [...dr, ...Array(Math.max(0, 8 - dr.length)).fill('')];
+      csvLines.push([...paddedTr, '', ...paddedDr].join(','));
     }
 
     const csv = '﻿' + csvLines.join('\n');
