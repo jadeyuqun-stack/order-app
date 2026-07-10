@@ -22,6 +22,7 @@ function formatTime(timeStr: string) {
 
 export default function ReportManager({ report, setReport, year, setYear, month, setMonth, exportCSV }: any) {
   const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -29,6 +30,21 @@ export default function ReportManager({ report, setReport, year, setYear, month,
     const data = await res.json();
     setReport(data);
     setLoading(false);
+  };
+
+  const handleClearMonth = async () => {
+    if (!confirm(`確定要清除 ${year}年${month}月 的所有訂單明細嗎？此操作無法復原。`)) return;
+    setClearing(true);
+    await fetch('/api/orders/clear-month', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month }),
+    });
+    setClearing(false);
+    // Regenerate report after clearing
+    const res = await fetch(`/api/monthly-report?year=${year}&month=${month}`);
+    const data = await res.json();
+    setReport(data);
   };
 
   return (
@@ -51,6 +67,11 @@ export default function ReportManager({ report, setReport, year, setYear, month,
         </button>
         {report && report.summary && report.summary.length > 0 && (
           <button onClick={() => exportCSV(report)} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">匯出 CSV</button>
+        )}
+        {report && report.summary && report.summary.length > 0 && (
+          <button onClick={handleClearMonth} disabled={clearing} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+            {clearing ? '清除中...' : '清除本月明細'}
+          </button>
         )}
       </div>
 
