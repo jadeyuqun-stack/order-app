@@ -58,7 +58,7 @@ export default function ReportManager({ report, setReport, year, setYear, month,
         <div className="space-y-6">
           {/* Totals sheet */}
           <div>
-            <h4 className="font-semibold mb-2">💰 總會總（每人當月累積）</h4>
+            <h4 className="font-semibold mb-2">💰 總彙總（每人當月累積）</h4>
             <table className="w-full text-sm bg-white rounded-lg border">
               <thead className="bg-gray-50 border-b">
                 <tr>

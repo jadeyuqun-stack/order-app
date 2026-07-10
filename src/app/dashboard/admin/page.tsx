@@ -69,18 +69,10 @@ export default function AdminDashboard() {
         detailLines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
       });
     }
-    const detailCsv = '﻿' + detailLines.join('\n');
-    const detailBlob = new Blob([detailCsv], { type: 'text/csv;charset=utf-8;' });
-    const detailUrl = URL.createObjectURL(detailBlob);
-    const detailA = document.createElement('a');
-    detailA.href = detailUrl;
-    detailA.download = `玉群環境科技_訂單明細_${reportYear}年${reportMonth}月.csv`;
-    detailA.click();
-    URL.revokeObjectURL(detailUrl);
 
-    // Sheet 2: 總會總
+    // Sheet 2: 總彙總
     const totalLines: string[] = [];
-    totalLines.push('Sheet: 總會總');
+    totalLines.push('Sheet: 總彙總');
     const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
     totalLines.push(totalHeaders.join(','));
     if (data.summary) {
@@ -88,14 +80,17 @@ export default function AdminDashboard() {
         totalLines.push([r.department || '-', r.name, r.order_count, r.total_amount].join(','));
       });
     }
-    const totalCsv = '﻿' + totalLines.join('\n');
-    const totalBlob = new Blob([totalCsv], { type: 'text/csv;charset=utf-8;' });
-    const totalUrl = URL.createObjectURL(totalBlob);
-    const totalA = document.createElement('a');
-    totalA.href = totalUrl;
-    totalA.download = `玉群環境科技_總會總_${reportYear}年${reportMonth}月.csv`;
-    totalA.click();
-    URL.revokeObjectURL(totalUrl);
+
+    // Combine both sheets into one file
+    const allLines = [...detailLines, '', ...totalLines];
+    const csv = '﻿' + allLines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `玉群環境科技_訂餐報表_${reportYear}年${reportMonth}月.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
