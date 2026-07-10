@@ -1,119 +1,82 @@
-import { query, queryOne, execute } from './db';
+import { db } from './db';
+import { v4 as uuidv4 } from 'uuid';
 
 // ===== Restaurants =====
-export async function createRestaurant(name: string, photoUrl: string) {
-  await execute(
-    'INSERT INTO restaurants (id, name, photo_url) VALUES ($1, $2, $3)',
-    [require('uuid').v4(), name, photoUrl]
-  );
+export function createRestaurant(name: string, photoUrl: string) {
+  db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(uuidv4(), name, photoUrl);
 }
-export async function getAllRestaurants() {
-  return await query('SELECT * FROM restaurants ORDER BY created_at DESC');
+export function getAllRestaurants() {
+  return db.prepare('SELECT * FROM restaurants ORDER BY created_at DESC').all();
 }
 
 // ===== Daily Orders =====
-export async function createDailyOrder(orderDate: string, restaurantId: string, deadline: string) {
-  await execute(
-    'INSERT INTO daily_orders (id, order_date, restaurant_id, order_deadline) VALUES ($1, $2, $3, $4)',
-    [require('uuid').v4(), orderDate, restaurantId, deadline]
-  );
+export function createDailyOrder(orderDate: string, restaurantId: string, deadline: string) {
+  db.prepare('INSERT INTO daily_orders (id, order_date, restaurant_id, order_deadline) VALUES (?, ?, ?, ?)').run(uuidv4(), orderDate, restaurantId, deadline);
 }
-export async function getDailyOrders() {
-  return await query(`
-    SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo
-    FROM daily_orders d
-    JOIN restaurants r ON d.restaurant_id = r.id
-    ORDER BY d.order_date DESC
-  `);
+export function getDailyOrders() {
+  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id ORDER BY d.order_date DESC`).all();
 }
-export async function getActiveDailyOrder() {
-  return await queryOne(`
-    SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo
-    FROM daily_orders d
-    JOIN restaurants r ON d.restaurant_id = r.id
-    WHERE d.status = 'open' AND d.order_deadline > NOW()
-    ORDER BY d.order_date DESC
-    LIMIT 1
-  `);
+export function getActiveDailyOrder() {
+  const now = new Date().toISOString();
+  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > ? ORDER BY d.order_date DESC LIMIT 1`).get(now);
 }
-export async function closeDailyOrder(id: string) {
-  await execute("UPDATE daily_orders SET status = 'closed' WHERE id = $1", [id]);
+export function closeDailyOrder(id: string) {
+  db.prepare("UPDATE daily_orders SET status = 'closed' WHERE id = ?").run(id);
 }
 
 // ===== Employees =====
-export async function createEmployee(name: string, department: string) {
-  await execute(
-    'INSERT INTO employees (id, name, department) VALUES ($1, $2, $3)',
-    [require('uuid').v4(), name, department]
-  );
+export function createEmployee(name: string, department: string) {
+  db.prepare('INSERT INTO employees (id, name, department) VALUES (?, ?, ?)').run(uuidv4(), name, department);
 }
-export async function getAllEmployees() {
-  return await query('SELECT * FROM employees ORDER BY name');
+export function getAllEmployees() {
+  return db.prepare('SELECT * FROM employees ORDER BY name').all();
 }
-export async function deleteEmployee(id: string) {
-  await execute('DELETE FROM orders WHERE employee_id = $1', [id]);
-  await execute('DELETE FROM employees WHERE id = $1', [id]);
+export function deleteEmployee(id: string) {
+  db.prepare('DELETE FROM orders WHERE employee_id = ?').run(id);
+  db.prepare('DELETE FROM employees WHERE id = ?').run(id);
 }
 
-// ===== Orders =====
-export async function placeOrder(dailyOrderId: string, employeeId: string, dishName: string, price: number, quantity: number) {
-  await execute(
-    'INSERT INTO orders (id, daily_order_id, employee_id, employee_name, dish_name, price, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-    [require('uuid').v4(), dailyOrderId, employeeId, '', dishName, price, quantity]
-  );
+// ===== Orders (employee self-fill) =====
+export function placeOrder(dailyOrderId: string, employeeId: string, dishName: string, price: number, quantity: number) {
+  db.prepare('INSERT INTO orders (id, daily_order_id, employee_id, dish_name, price, quantity) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv4(), dailyOrderId, employeeId, dishName, price, quantity);
 }
-export async function getEmployeeOrders(dailyOrderId: string, employeeId: string) {
-  return await query(
-    'SELECT * FROM orders WHERE daily_order_id = $1 AND employee_id = $2',
-    [dailyOrderId, employeeId]
-  );
+export function getEmployeeOrders(dailyOrderId: string, employeeId: string) {
+  return db.prepare('SELECT * FROM orders WHERE daily_order_id = ? AND employee_id = ?').all(dailyOrderId, employeeId);
 }
-export async function getAllOrdersForDate(date: string, sortBy: string = 'name') {
-  const orderCol = sortBy === 'dish' ? 'o.dish_name' : 'e.department, COALESCE(e.name, o.employee_name)';
-  return await query(`
+export function getAllOrdersForDate(date: string) {
+  return db.prepare(`
     SELECT o.*, e.name as employee_name, e.department, r.name as restaurant_name
     FROM orders o
-    LEFT JOIN employees e ON o.employee_id = e.id
+    JOIN employees e ON o.employee_id = e.id
     JOIN daily_orders d ON o.daily_order_id = d.id
     JOIN restaurants r ON d.restaurant_id = r.id
-    WHERE d.order_date = $1
-    ORDER BY ${orderCol}, o.dish_name
-  `, [date]);
+    WHERE d.order_date = ?
+    ORDER BY e.department, e.name, o.dish_name
+  `).all(date);
 }
-export async function updateOrder(id: string, quantity: number) {
-  await execute('UPDATE orders SET quantity = $1 WHERE id = $2', [quantity, id]);
+export function updateOrder(id: string, quantity: number, price?: number) {
+  if (price !== undefined) {
+    db.prepare('UPDATE orders SET quantity = ?, price = ? WHERE id = ?').run(quantity, price, id);
+  } else {
+    db.prepare('UPDATE orders SET quantity = ? WHERE id = ?').run(quantity, id);
+  }
 }
-export async function deleteOrder(id: string) {
-  await execute('DELETE FROM orders WHERE id = $1', [id]);
+export function deleteOrder(id: string) {
+  db.prepare('DELETE FROM orders WHERE id = ?').run(id);
 }
 
 // ===== Monthly Report =====
-export async function getMonthlyReport(year: number, month: number) {
+export function getMonthlyReport(year: number, month: number) {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
   const end = month === 12 ? `${year + 1}-01-01` : `${year}-${month + 1 < 10 ? '0' + (month + 1) : month + 1}-01`;
-
-  const totals = await query(`
-    SELECT e.name, e.department,
+  return db.prepare(`
+    SELECT e.id, e.name, e.department,
            SUM(o.price * o.quantity) as total_amount,
            COUNT(o.id) as order_count
     FROM orders o
-    LEFT JOIN employees e ON o.employee_id = e.id
+    JOIN employees e ON o.employee_id = e.id
     JOIN daily_orders d ON o.daily_order_id = d.id
-    WHERE d.order_date >= $1 AND d.order_date < $2
+    WHERE d.order_date >= ? AND d.order_date < ?
     GROUP BY e.id ORDER BY e.department, e.name
-  `, [start, end]);
-
-  const details = await query(`
-    SELECT d.order_date, r.name as restaurant_name,
-           COALESCE(e.name, o.employee_name) as employee_name, COALESCE(e.department, '-') as department,
-           o.dish_name, o.price, o.quantity, o.created_at as order_time
-    FROM orders o
-    LEFT JOIN employees e ON o.employee_id = e.id
-    JOIN daily_orders d ON o.daily_order_id = d.id
-    JOIN restaurants r ON d.restaurant_id = r.id
-    WHERE d.order_date >= $1 AND d.order_date < $2
-    ORDER BY d.order_date, e.department, e.name
-  `, [start, end]);
-
-  return { summary: totals, details, totalLines: details.length };
+  `).all(start, end);
 }

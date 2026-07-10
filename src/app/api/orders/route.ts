@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { placeOrder, getEmployeeOrders, getAllOrdersForDate, updateOrder, deleteOrder, getAllEmployees, createEmployee } from '@/lib/queries';
+import { db } from '@/lib/db';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,19 +9,42 @@ export async function GET(request: Request) {
   const name = searchParams.get('name');
 
   if (date) {
-    const orders = await getAllOrdersForDate(date, sortBy || 'name');
+    const orderBy = sortBy === 'dish'
+      ? 'o.dish_name, COALESCE(e.name, o.employee_name)'
+      : 'e.department, COALESCE(e.name, o.employee_name), o.dish_name';
+    const orders = db.prepare(`
+      SELECT o.*, e.name as employee_name, e.department, r.name as restaurant_name
+      FROM orders o
+      LEFT JOIN employees e ON o.employee_id = e.id
+      JOIN daily_orders d ON o.daily_order_id = d.id
+      JOIN restaurants r ON d.restaurant_id = r.id
+      WHERE d.order_date = ?
+      ORDER BY ${orderBy}
+    `).all(date);
     return NextResponse.json(orders);
   }
 
   if (dailyOrderId && name) {
-    const employees: any = await getAllEmployees();
-    const emp = employees.find((e: any) => e.name === name);
-    const empId = emp ? emp.id : null;
+    const emp = db.prepare('SELECT * FROM employees WHERE name = ?').get(name);
+    const empId = emp ? (emp as any).id : null;
     if (empId) {
-      const orders = await getEmployeeOrders(dailyOrderId, empId);
+      const orders = db.prepare(`
+        SELECT o.*, r.name as restaurant_name
+        FROM orders o
+        JOIN daily_orders d ON o.daily_order_id = d.id
+        JOIN restaurants r ON d.restaurant_id = r.id
+        WHERE o.daily_order_id = ? AND o.employee_id = ?
+      `).all(dailyOrderId, empId);
       return NextResponse.json(orders);
     }
-    return NextResponse.json([]);
+    const orders = db.prepare(`
+      SELECT o.*, r.name as restaurant_name
+      FROM orders o
+      JOIN daily_orders d ON o.daily_order_id = d.id
+      JOIN restaurants r ON d.restaurant_id = r.id
+      WHERE o.daily_order_id = ? AND o.employee_name = ?
+    `).all(dailyOrderId, name);
+    return NextResponse.json(orders);
   }
 
   return NextResponse.json([]);
@@ -32,15 +55,13 @@ export async function POST(request: Request) {
 
   let finalEmpId = employeeId;
   if (!finalEmpId && name) {
-    const employees: any = await getAllEmployees();
-    const emp = employees.find((e: any) => e.name === name);
+    const emp = db.prepare('SELECT id FROM employees WHERE name = ?').get(name);
     if (emp) {
-      finalEmpId = emp.id;
+      finalEmpId = (emp as any).id;
     } else {
-      await createEmployee(name, '');
-      const newEmps: any = await getAllEmployees();
-      const newEmp = newEmps.find((e: any) => e.name === name);
-      finalEmpId = newEmp?.id || '';
+      const newId = require('uuid').v4();
+      db.prepare('INSERT INTO employees (id, name) VALUES (?, ?)').run(newId, name);
+      finalEmpId = newId;
     }
   }
 
@@ -48,14 +69,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
 
-  await placeOrder(dailyOrderId, finalEmpId || '', dishName, Number(price), Number(quantity) || 1);
+  db.prepare('INSERT INTO orders (id, daily_order_id, employee_id, employee_name, dish_name, price, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+    require('uuid').v4(),
+    dailyOrderId,
+    finalEmpId || '',
+    name || '',
+    dishName,
+    Number(price),
+    Number(quantity) || 1
+  );
+
   return NextResponse.json({ success: true });
 }
 
 export async function PUT(request: Request) {
-  const { id, quantity } = await request.json();
-  if (!id || quantity === undefined) return NextResponse.json({ error: '缺少欄位' }, { status: 400 });
-  await updateOrder(id, quantity);
+  const { id, quantity, price } = await request.json();
+  if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
+  const sets: string[] = [];
+  const vals: any[] = [];
+  if (quantity !== undefined) { sets.push('quantity = ?'); vals.push(Number(quantity)); }
+  if (price !== undefined) { sets.push('price = ?'); vals.push(Number(price)); }
+  if (sets.length === 0) return NextResponse.json({ error: '沒有更新欄位' }, { status: 400 });
+  vals.push(id);
+  db.prepare(`UPDATE orders SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
   return NextResponse.json({ success: true });
 }
 
@@ -63,6 +99,6 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
-  await deleteOrder(id);
+  db.prepare('DELETE FROM orders WHERE id = ?').run(id);
   return NextResponse.json({ success: true });
 }

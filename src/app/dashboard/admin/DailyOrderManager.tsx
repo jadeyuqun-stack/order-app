@@ -1,6 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+function formatDeadline(isoStr: string) {
+  if (!isoStr) return '-';
+  const d = new Date(isoStr);
+  d.setHours(d.getHours() + 8);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 export default function DailyOrderManager({ dailyOrders, refresh }: any) {
   const [restaurantId, setRestaurantId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
@@ -79,7 +88,7 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
             <div className="flex items-center gap-3">
               <span className="font-medium">{o.restaurant_name}</span>
               <span className="text-gray-500 text-sm">{o.order_date}</span>
-              <span className="text-gray-400 text-xs">截止 {o.order_deadline}</span>
+              <span className="text-gray-400 text-xs">截止 {formatDeadline(o.order_deadline)}</span>
             </div>
             <div className="flex items-center gap-2">
               {o.status === 'open' && (

@@ -1,6 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 
+function formatDeadline(isoStr: string) {
+  if (!isoStr) return '-';
+  const d = new Date(isoStr);
+  d.setHours(d.getHours() + 8);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 interface DailyOrder {
   id: string;
   order_date: string;
@@ -72,7 +81,7 @@ export default function HomePage() {
               <div>
                 <p className="text-blue-100 text-sm">今日餐廳</p>
                 <h2 className="text-2xl font-bold mt-1">{activeOrder.restaurant_name}</h2>
-                <p className="text-blue-100 mt-1">截止時間：{activeOrder.order_deadline}</p>
+                <p className="text-blue-100 mt-1">截止時間：{formatDeadline(activeOrder.order_deadline)}</p>
               </div>
               <a href="/menu" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
                 前往點餐 →

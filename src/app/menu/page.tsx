@@ -1,6 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 
+function formatDeadline(isoStr: string) {
+  if (!isoStr) return '-';
+  const d = new Date(isoStr);
+  d.setHours(d.getHours() + 8);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 interface CartItem {
   dishName: string;
   price: string;

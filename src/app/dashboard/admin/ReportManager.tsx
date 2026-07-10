@@ -9,13 +9,12 @@ function formatDate(dateStr: string) {
 
 function formatTime(timeStr: string) {
   if (!timeStr) return '-';
-  // Format: "2026-07-07 13:30" or similar
-  const parts = timeStr.split(' ');
-  if (parts.length > 1) {
-    const t = parts[1].substring(0, 5);
-    return t;
-  }
-  return timeStr.substring(0, 5);
+  // SQLite stores UTC, convert to +8 (Taiwan)
+  const d = new Date(timeStr);
+  d.setHours(d.getHours() + 8);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
 }
 
 export default function ReportManager({ report, setReport, year, setYear, month, setMonth, exportCSV }: any) {

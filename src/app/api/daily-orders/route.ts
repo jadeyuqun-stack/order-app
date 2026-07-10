@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { createDailyOrder, getDailyOrders, getActiveDailyOrder, closeDailyOrder } from '@/lib/queries';
 
 export async function GET() {
-  const db = await import('@/lib/db');
-  await db.execute("UPDATE daily_orders SET status = 'closed' WHERE status = 'open' AND order_deadline <= NOW()");
-  return NextResponse.json({ active: await getActiveDailyOrder(), dailyOrders: await getDailyOrders() });
+  // Auto-close expired orders (compare ISO string deadline with current ISO time)
+  const now = new Date().toISOString();
+  db.prepare("UPDATE daily_orders SET status = 'closed' WHERE status = 'open' AND order_deadline <= ?").run(now);
+  return NextResponse.json({ active: getActiveDailyOrder(), dailyOrders: getDailyOrders() });
 }
 
 export async function POST(request: Request) {
@@ -12,21 +14,20 @@ export async function POST(request: Request) {
   if (!orderDate || !restaurantId || !deadline) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
-  await createDailyOrder(orderDate, restaurantId, deadline);
-  return NextResponse.json(await getDailyOrders());
+  createDailyOrder(orderDate, restaurantId, deadline);
+  return NextResponse.json(getDailyOrders());
 }
 
 export async function PUT(request: Request) {
   const { id, deadline } = await request.json();
   if (!id || !deadline) return NextResponse.json({ error: '缺少欄位' }, { status: 400 });
-  const db = await import('@/lib/db');
-  await db.execute('UPDATE daily_orders SET order_deadline = $1 WHERE id = $2', [deadline, id]);
-  return NextResponse.json(await getDailyOrders());
+  db.prepare('UPDATE daily_orders SET order_deadline = ? WHERE id = ?').run(deadline, id);
+  return NextResponse.json(getDailyOrders());
 }
 
 export async function DELETE(request: Request) {
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
-  await closeDailyOrder(id);
+  closeDailyOrder(id);
   return NextResponse.json({ success: true });
 }

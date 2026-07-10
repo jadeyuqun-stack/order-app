@@ -7,6 +7,7 @@ export default function OrderManager({ refresh }: any) {
   const [sortBy, setSortBy] = useState<'name' | 'dish'>('name');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editQty, setEditQty] = useState(0);
+  const [editPrice, setEditPrice] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function OrderManager({ refresh }: any) {
   }, [date, sortBy]);
 
   const handleSave = async (id: string) => {
-    await fetch('/api/orders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, quantity: editQty }) });
+    await fetch('/api/orders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, quantity: editQty, price: editPrice }) });
     setEditingId(null);
     refresh();
   };
@@ -63,8 +64,7 @@ export default function OrderManager({ refresh }: any) {
                 <th className="text-left p-3">姓名</th>
                 <th className="text-left p-3">餐廳</th>
                 <th className="text-left p-3">菜色</th>
-                <th className="text-right p-3">數量</th>
-                <th className="text-right p-3">單價</th>
+                <th className="text-right p-3">數量/單價</th>
                 <th className="text-right p-3">金額</th>
                 <th className="text-center p-3">操作</th>
               </tr>
@@ -79,14 +79,16 @@ export default function OrderManager({ refresh }: any) {
                     {editingId === o.id ? (
                       <div className="flex items-center justify-end gap-1">
                         <input type="number" value={editQty} onChange={(e) => setEditQty(Number(e.target.value))} className="w-16 px-2 py-1 border rounded text-right" min={1} />
+                        <input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-20 px-2 py-1 border rounded text-right" min={0} />
                         <button onClick={() => handleSave(o.id)} className="px-2 py-1 bg-green-500 text-white text-xs rounded">存</button>
                         <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-gray-200 text-xs rounded">取</button>
                       </div>
                     ) : (
-                      <button onClick={() => { setEditingId(o.id); setEditQty(o.quantity); }}>{o.quantity}</button>
+                      <button onClick={() => { setEditingId(o.id); setEditQty(o.quantity); setEditPrice(o.price); }}>
+                        {o.quantity} (NT${o.price})
+                      </button>
                     )}
                   </td>
-                  <td className="p-3 text-right">NT${o.price}</td>
                   <td className="p-3 text-right font-medium">NT${o.price * o.quantity}</td>
                   <td className="p-3 text-center">
                     <button onClick={() => handleDelete(o.id)} className="text-red-400 hover:text-red-600 text-xs">刪除</button>
