@@ -78,7 +78,7 @@ export default function AdminDashboard() {
     // Build side-by-side CSV: 總彙總 (left A-D) | 明細 (right F-K)
     const csvLines: string[] = [];
     // Title row: 總彙總 on left, 訂餐明細 on right
-    csvLines.push(['7月總彙總', '', '', '', '', '訂餐明細', '', '', '', '', '', '', '', ''].join(','));
+    csvLines.push([`${reportMonth}月總彙總`, '', '', '', '', '訂餐明細', '', '', '', '', '', '', '', ''].join(','));
     // Headers: 總彙總 first, then empty column, then 明細 headers
     csvLines.push([...['部門', '姓名', '訂餐次數', '總金額'], '', ...['日期', '時間', '餐廳', '姓名', '菜色', '數量', '單價', '金額']].join(','));
 
