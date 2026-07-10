@@ -3,11 +3,29 @@ import { useState, useEffect } from 'react';
 
 function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
-  const d = new Date(isoStr);
-  d.setHours(d.getHours() + 8);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  // Stored deadline is "YYYY-MM-DDTHH:MM" with no timezone — treat as Taiwan (+8) time
+  // Parse manually to avoid server TZ ambiguity
+  const parts = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!parts) return '-';
+  const [, , mo, da, h, mi] = parts;
+  const hh = String((parseInt(h) + 8) % 24).padStart(2, '0');
+  return `${parseInt(mo)}月${parseInt(da)}日 ${hh}:${mi}`;
+}
+
+// Convert stored deadline to datetime-local format "YYYY-MM-DDTHH:MM"
+// Handles both "2026-07-10T11:08" (no TZ) and "2026-07-10T03:08:00.000Z" (UTC ISO)
+function toDatetimeLocal(str: string) {
+  if (!str) return '';
+  // Already in datetime-local format? return as-is
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str.slice(0, 16);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 
 export default function DailyOrderManager({ dailyOrders, refresh }: any) {
@@ -45,7 +63,7 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
 
   const startEdit = (order: any) => {
     setEditingId(order.id);
-    setEditDeadline(order.order_deadline);
+    setEditDeadline(toDatetimeLocal(order.order_deadline));
   };
 
   const handleSaveDeadline = async (id: string) => {

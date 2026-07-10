@@ -9,11 +9,14 @@ function formatDate(dateStr: string) {
 
 function formatTime(timeStr: string) {
   if (!timeStr) return '-';
-  // SQLite stores UTC, convert to +8 (Taiwan)
+  // created_at is stored as UTC ISO with Z suffix, e.g. "2026-07-10T05:08:30.123Z"
+  // Parse as UTC, then convert to Taiwan (+8)
   const d = new Date(timeStr);
-  d.setHours(d.getHours() + 8);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
+  if (isNaN(d.getTime())) return '-';
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  const h = String((utcH + 8) % 24).padStart(2, '0');
+  const m = String(utcM).padStart(2, '0');
   return `${h}:${m}`;
 }
 

@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 
 function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
-  const d = new Date(isoStr);
-  d.setHours(d.getHours() + 8);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  const parts = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!parts) return '-';
+  const [, , mo, da, h, mi] = parts;
+  const hh = String((parseInt(h) + 8) % 24).padStart(2, '0');
+  return `${parseInt(mo)}月${parseInt(da)}日 ${hh}:${mi}`;
 }
 
 interface DailyOrder {
