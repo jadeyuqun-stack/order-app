@@ -68,11 +68,6 @@ export default function ReportManager({ report, setReport, year, setYear, month,
         {report && report.summary && report.summary.length > 0 && (
           <button onClick={() => exportCSV(report)} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">匯出 CSV</button>
         )}
-        {report && report.summary && report.summary.length > 0 && (
-          <button onClick={handleClearMonth} disabled={clearing} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
-            {clearing ? '清除中...' : '清除本月明細'}
-          </button>
-        )}
       </div>
 
       {report && report.summary && report.summary.length > 0 && (
@@ -134,6 +129,15 @@ export default function ReportManager({ report, setReport, year, setYear, month,
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Clear button moved below tables to prevent accidental click */}
+      {report && report.summary && report.summary.length > 0 && (
+        <div className="text-right">
+          <button onClick={handleClearMonth} disabled={clearing} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+            {clearing ? '清除中...' : `清除 ${year}年${month}月 明細`}
+          </button>
         </div>
       )}
     </div>
