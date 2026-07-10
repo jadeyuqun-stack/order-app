@@ -5,13 +5,15 @@ function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return '-';
-  const utcMs = d.getTime();
-  const tw = new Date(utcMs + 8 * 3600000);
-  const mo = tw.getMonth() + 1;
-  const da = tw.getDate();
-  const h = String(tw.getHours()).padStart(2, '0');
-  const m = String(tw.getMinutes()).padStart(2, '0');
-  return `${mo}月${da}日 ${h}:${m}`;
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  const utcD = d.getUTCDate();
+  const utcMo = d.getUTCMonth() + 1;
+  const h = String((utcH + 8) % 24).padStart(2, '0');
+  const m = String(utcM).padStart(2, '0');
+  let day = utcD;
+  if ((utcH + 8) >= 24) { day += 1; }
+  return `${utcMo}月${day}日 ${h}:${m}`;
 }
 
 interface CartItem {

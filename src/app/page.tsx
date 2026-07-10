@@ -5,13 +5,15 @@ function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return '-';
-  const utcMs = d.getTime();
-  const tw = new Date(utcMs + 8 * 3600000);
-  const mo = tw.getMonth() + 1;
-  const da = tw.getDate();
-  const h = String(tw.getHours()).padStart(2, '0');
-  const m = String(tw.getMinutes()).padStart(2, '0');
-  return `${mo}月${da}日 ${h}:${m}`;
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  const utcD = d.getUTCDate();
+  const utcMo = d.getUTCMonth() + 1;
+  const h = String((utcH + 8) % 24).padStart(2, '0');
+  const m = String(utcM).padStart(2, '0');
+  let day = utcD;
+  if ((utcH + 8) >= 24) { day += 1; }
+  return `${utcMo}月${day}日 ${h}:${m}`;
 }
 
 interface DailyOrder {
@@ -30,6 +32,7 @@ interface OrderItem {
   dish_name: string;
   price: number;
   quantity: number;
+  restaurant_name: string;
 }
 
 interface OrderSummary {
@@ -37,6 +40,7 @@ interface OrderSummary {
   quantity: number;
   price: number;
   count: number;
+  restaurant_name: string;
 }
 
 export default function HomePage() {
@@ -59,7 +63,7 @@ export default function HomePage() {
       for (const o of todayData) {
         const key = `${o.dish_name}|${o.quantity}|${o.price}`;
         if (!grouped[key]) {
-          grouped[key] = { dish_name: o.dish_name, quantity: o.quantity, price: o.price, count: 0 };
+          grouped[key] = { dish_name: o.dish_name, quantity: o.quantity, price: o.price, count: 0, restaurant_name: o.restaurant_name || '' };
         }
         grouped[key].count++;
       }
@@ -114,6 +118,7 @@ export default function HomePage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="text-left p-3">餐廳</th>
                   <th className="text-left p-3">菜色</th>
                   <th className="text-right p-3">數量</th>
                   <th className="text-right p-3">單價</th>
@@ -124,6 +129,7 @@ export default function HomePage() {
               <tbody className="divide-y">
                 {orderSummary.map((s, i) => (
                   <tr key={i} className="hover:bg-gray-50">
+                    <td className="p-3 text-xs text-gray-500">{s.restaurant_name || '-'}</td>
                     <td className="p-3 font-medium">{s.dish_name}</td>
                     <td className="p-3 text-right">{s.quantity}</td>
                     <td className="p-3 text-right">NT${s.price}</td>
@@ -153,6 +159,7 @@ export default function HomePage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="text-left p-3">姓名</th>
+                  <th className="text-left p-3">餐廳</th>
                   <th className="text-left p-3">菜色</th>
                   <th className="text-right p-3">數量</th>
                   <th className="text-right p-3">單價</th>
@@ -163,6 +170,7 @@ export default function HomePage() {
                 {todayOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-gray-50">
                     <td className="p-3 font-medium">{o.employee_name}</td>
+                    <td className="p-3 text-xs text-gray-500">{o.restaurant_name || '-'}</td>
                     <td className="p-3">{o.dish_name}</td>
                     <td className="p-3 text-right">{o.quantity}</td>
                     <td className="p-3 text-right">NT${o.price}</td>

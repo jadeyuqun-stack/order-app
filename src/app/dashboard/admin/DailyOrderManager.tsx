@@ -6,14 +6,18 @@ function formatDeadline(str: string) {
   if (!str) return '-';
   const d = new Date(str);
   if (isNaN(d.getTime())) return '-';
-  // Convert UTC to Taiwan (+8)
-  const utcMs = d.getTime();
-  const tw = new Date(utcMs + 8 * 3600000);
-  const mo = tw.getMonth() + 1;
-  const da = tw.getDate();
-  const h = String(tw.getHours()).padStart(2, '0');
-  const m = String(tw.getMinutes()).padStart(2, '0');
-  return `${mo}月${da}日 ${h}:${m}`;
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  const utcD = d.getUTCDate();
+  const utcMo = d.getUTCMonth() + 1;
+  const h = String((utcH + 8) % 24).padStart(2, '0');
+  const m = String(utcM).padStart(2, '0');
+  // Handle day rollover from +8
+  let day = utcD;
+  let mo = utcMo;
+  if (utcH >= 16) { day += 1; }
+  else if ((utcH + 8) >= 24) { day += 1; }
+  return `${mo}月${day}日 ${h}:${m}`;
 }
 
 // Convert UTC ISO deadline to datetime-local value "YYYY-MM-DDTHH:MM" (Taiwan time)
@@ -23,15 +27,14 @@ function toDatetimeLocal(str: string) {
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
   const d = new Date(str);
   if (isNaN(d.getTime())) return '';
-  // Convert UTC to Taiwan (+8)
-  const utcMs = d.getTime();
-  const tw = new Date(utcMs + 8 * 3600000);
-  const y = tw.getFullYear();
-  const m = String(tw.getMonth() + 1).padStart(2, '0');
-  const day = String(tw.getDate()).padStart(2, '0');
-  const hh = String(tw.getHours()).padStart(2, '0');
-  const mm = String(tw.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${day}T${hh}:${mm}`;
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const hh = String((utcH + 8) % 24).padStart(2, '0');
+  const mm = String(utcM).padStart(2, '0');
+  return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}T${hh}:${mm}`;
 }
 
 export default function DailyOrderManager({ dailyOrders, refresh }: any) {

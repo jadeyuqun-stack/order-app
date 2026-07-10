@@ -44,18 +44,18 @@ export default function AdminDashboard() {
 
   const handleExportCSV = (data: any) => {
     if (!data) return;
-    const lines: string[] = [];
 
-    lines.push('Sheet: 訂單明細');
+    // Sheet 1: 訂單明細
+    const detailLines: string[] = [];
+    detailLines.push('Sheet: 訂單明細');
     const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
-    lines.push(detailHeaders.join(','));
+    detailLines.push(detailHeaders.join(','));
     if (data.details) {
       data.details.forEach((d: any) => {
         const datePart = d.order_date ? (() => {
           const [m, day] = d.order_date.split('-').slice(1, 3);
           return `${parseInt(m)}月${parseInt(day)}日`;
         })() : '';
-        // Convert UTC time to Taiwan (+8h)
         let timePart = '-';
         if (d.order_time) {
           const t = new Date(d.order_time);
@@ -66,28 +66,36 @@ export default function AdminDashboard() {
             timePart = `${h}:${String(utcM).padStart(2, '0')}`;
           }
         }
-        lines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
+        detailLines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
       });
     }
+    const detailCsv = '﻿' + detailLines.join('\n');
+    const detailBlob = new Blob([detailCsv], { type: 'text/csv;charset=utf-8;' });
+    const detailUrl = URL.createObjectURL(detailBlob);
+    const detailA = document.createElement('a');
+    detailA.href = detailUrl;
+    detailA.download = `玉群環境科技_訂單明細_${reportYear}年${reportMonth}月.csv`;
+    detailA.click();
+    URL.revokeObjectURL(detailUrl);
 
-    lines.push('');
-    lines.push('Sheet: 總會總');
+    // Sheet 2: 總會總
+    const totalLines: string[] = [];
+    totalLines.push('Sheet: 總會總');
     const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
-    lines.push(totalHeaders.join(','));
+    totalLines.push(totalHeaders.join(','));
     if (data.summary) {
       data.summary.forEach((r: any) => {
-        lines.push([r.department || '-', r.name, r.order_count, r.total_amount].join(','));
+        totalLines.push([r.department || '-', r.name, r.order_count, r.total_amount].join(','));
       });
     }
-
-    const csv = lines.join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `玉群環境科技_訂餐明細_${reportYear}年${reportMonth}月.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const totalCsv = '﻿' + totalLines.join('\n');
+    const totalBlob = new Blob([totalCsv], { type: 'text/csv;charset=utf-8;' });
+    const totalUrl = URL.createObjectURL(totalBlob);
+    const totalA = document.createElement('a');
+    totalA.href = totalUrl;
+    totalA.download = `玉群環境科技_總會總_${reportYear}年${reportMonth}月.csv`;
+    totalA.click();
+    URL.revokeObjectURL(totalUrl);
   };
 
   return (
