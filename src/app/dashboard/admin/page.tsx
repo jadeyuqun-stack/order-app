@@ -45,11 +45,8 @@ export default function AdminDashboard() {
   const handleExportCSV = (data: any) => {
     if (!data) return;
 
-    // Sheet 1: 訂單明細
-    const detailLines: string[] = [];
-    detailLines.push('Sheet: 訂單明細');
-    const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
-    detailLines.push(detailHeaders.join(','));
+    // Build detail rows and total rows
+    const detailRows: string[][] = [];
     if (data.details) {
       data.details.forEach((d: any) => {
         const datePart = d.order_date ? (() => {
@@ -66,24 +63,35 @@ export default function AdminDashboard() {
             timePart = `${h}:${String(utcM).padStart(2, '0')}`;
           }
         }
-        detailLines.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity].join(','));
+        detailRows.push([datePart, timePart, d.restaurant_name, d.employee_name, d.department || '-', d.dish_name, d.quantity, d.price, d.price * d.quantity]);
       });
     }
-
-    // Sheet 2: 總彙總
-    const totalLines: string[] = [];
-    totalLines.push('Sheet: 總彙總');
-    const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
-    totalLines.push(totalHeaders.join(','));
+    const totalRows: string[][] = [];
     if (data.summary) {
       data.summary.forEach((r: any) => {
-        totalLines.push([r.department || '-', r.name, r.order_count, r.total_amount].join(','));
+        totalRows.push([r.department || '-', r.name, r.order_count, r.total_amount]);
       });
     }
 
-    // Combine both sheets into one file
-    const allLines = [...detailLines, '', ...totalLines];
-    const csv = '﻿' + allLines.join('\n');
+    // Determine max rows needed
+    const maxLen = Math.max(detailRows.length, totalRows.length, 1);
+
+    // Build side-by-side CSV: 訂單明細 (left) | 總彙總 (right)
+    const csvLines: string[] = [];
+    const detailHeaders = ['日期', '時間', '餐廳', '姓名', '部門', '菜色', '數量', '單價', '金額'];
+    const totalHeaders = ['部門', '姓名', '訂餐次數', '總金額'];
+    csvLines.push([...detailHeaders, ...totalHeaders].join(','));
+
+    for (let i = 0; i < maxLen; i++) {
+      const dr = detailRows[i] || [];
+      const tr = totalRows[i] || [];
+      // Pad shorter row with empty strings so columns align
+      const paddedDr = [...dr, ...Array(Math.max(0, 9 - dr.length)).fill('')];
+      const paddedTr = [...tr, ...Array(Math.max(0, 4 - tr.length)).fill('')];
+      csvLines.push([...paddedDr, ...paddedTr].join(','));
+    }
+
+    const csv = '﻿' + csvLines.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
