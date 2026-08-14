@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   // Use streaming instead of readFileSync to avoid blocking the event loop
   const fileStream = fs.createReadStream(filePath);
-  return new NextResponse(fileStream, {
+  return new Response(fileStream as unknown as BodyInit, {
     headers: {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=86400, immutable',
