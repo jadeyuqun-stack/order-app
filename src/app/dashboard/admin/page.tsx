@@ -121,7 +121,7 @@ export default function AdminDashboard() {
       </div>
 
       {tab === 'restaurants' && <RestaurantManager stores={stores} setStores={setStores} refresh={loadData} />}
-      {tab === 'daily' && <DailyOrderManager dailyOrders={dailyOrders} refresh={loadData} />}
+      {tab === 'daily' && <DailyOrderManager dailyOrders={dailyOrders} stores={stores} refresh={loadData} />}
       {tab === 'orders' && <OrderManager refresh={loadData} />}
       {tab === 'report' && (
         <ReportManager report={report} setReport={setReport} year={reportYear} setYear={setReportYear} month={reportMonth} setMonth={setReportMonth} exportCSV={handleExportCSV} />

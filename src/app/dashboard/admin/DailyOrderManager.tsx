@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Convert UTC ISO deadline to Taiwan time display "07月10日 11:30"
 function formatDeadline(str: string) {
@@ -37,17 +37,12 @@ function toDatetimeLocal(str: string) {
   return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}T${hh}:${mm}`;
 }
 
-export default function DailyOrderManager({ dailyOrders, refresh }: any) {
+export default function DailyOrderManager({ dailyOrders, stores, refresh }: any) {
   const [restaurantId, setRestaurantId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [deadline, setDeadline] = useState('');
-  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDeadline, setEditDeadline] = useState('');
-
-  useEffect(() => {
-    fetch('/api/restaurants').then((r) => r.json()).then(setRestaurants).catch(() => {});
-  }, []);
 
   const handleCreate = async () => {
     if (!restaurantId || !orderDate || !deadline) return;
@@ -95,7 +90,7 @@ export default function DailyOrderManager({ dailyOrders, refresh }: any) {
             <label className="block text-xs text-gray-500 mb-1">選擇餐廳</label>
             <select value={restaurantId} onChange={(e) => setRestaurantId(e.target.value)} className="w-full px-3 py-2 border rounded-lg">
               <option value="">選擇餐廳</option>
-              {restaurants.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {stores.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           <div className="flex-1 min-w-[150px]">
