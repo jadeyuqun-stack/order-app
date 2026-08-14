@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Image from 'next/image';
 
 export default function RestaurantManager({ stores, setStores, refresh }: any) {
   const [name, setName] = useState('');
@@ -110,14 +109,7 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
         {stores.map((r: any) => (
           <div key={r.id} className="bg-white rounded-xl border overflow-hidden">
             {r.photo_url && (
-              <Image
-                src={r.photo_url}
-                alt={r.name}
-                width={400}
-                height={160}
-                className="w-full h-40 object-cover"
-                loading="lazy"
-              />
+              <img src={r.photo_url} alt={r.name} className="w-full h-40 object-cover" />
             )}
             <div className="p-3 flex items-center justify-between">
               <span className="font-medium">{r.name}</span>
