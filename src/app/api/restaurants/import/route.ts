@@ -7,23 +7,25 @@ export async function POST(request: Request) {
   const items: any[] = Array.isArray(body) ? body : (body?.items || []);
   if (!Array.isArray(items) || items.length === 0) return NextResponse.json({ error: '需要陣列' }, { status: 400 });
 
-  const existingNames = new Set(
-    db.prepare('SELECT name FROM restaurants').all().map((r: any) => r.name)
-  );
+  // Use a single transaction to batch all inserts
+  const existingNames = new Set(db.prepare('SELECT name FROM restaurants').all().map((r: any) => r.name));
 
   let imported = 0;
   let skipped = 0;
-  for (const item of items) {
-    if (existingNames.has(item.name)) {
-      skipped++;
-      continue;
+
+  const insert = db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)');
+  const txn = db.transaction(() => {
+    for (const item of items) {
+      if (existingNames.has(item.name)) {
+        skipped++;
+        continue;
+      }
+      insert.run(item.id || uuidv4(), item.name, item.photo_url || '');
+      existingNames.add(item.name);
+      imported++;
     }
-    db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(
-      item.id || uuidv4(), item.name, item.photo_url || ''
-    );
-    existingNames.add(item.name);
-    imported++;
-  }
+  });
+  txn();
 
   return NextResponse.json({
     restaurants: db.prepare('SELECT id, name, photo_url FROM restaurants ORDER BY created_at DESC').all(),
