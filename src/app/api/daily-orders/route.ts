@@ -27,7 +27,9 @@ function utcToTaiwanLocal(isoStr: string): string {
 export async function GET() {
   const now = new Date().toISOString();
   db.prepare("UPDATE daily_orders SET status = 'closed' WHERE status = 'open' AND order_deadline <= ?").run(now);
-  return NextResponse.json({ active: getActiveDailyOrder(), dailyOrders: getDailyOrders() });
+  // Pass 7 days ago so frontend only loads recent orders
+  const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return NextResponse.json({ active: getActiveDailyOrder(), dailyOrders: getDailyOrders(dateFrom) });
 }
 
 export async function POST(request: Request) {
@@ -36,14 +38,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
   createDailyOrder(orderDate, restaurantId, taiwanToLocalToUTC(deadline));
-  return NextResponse.json(getDailyOrders());
+  const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return NextResponse.json(getDailyOrders(dateFrom));
 }
 
 export async function PUT(request: Request) {
   const { id, deadline } = await request.json();
   if (!id || !deadline) return NextResponse.json({ error: '缺少欄位' }, { status: 400 });
   db.prepare('UPDATE daily_orders SET order_deadline = ? WHERE id = ?').run(taiwanToLocalToUTC(deadline), id);
-  return NextResponse.json(getDailyOrders());
+  const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return NextResponse.json(getDailyOrders(dateFrom));
 }
 
 export async function DELETE(request: Request) {

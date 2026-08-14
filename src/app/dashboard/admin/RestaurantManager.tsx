@@ -8,24 +8,27 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
 
   const handleAdd = async () => {
     if (!name.trim()) return;
-    const body: any = { name: name.trim() };
-    if (photoFile) {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(photoFile);
-      });
-      body.photoUrl = dataUrl;
-    }
+    // Create restaurant first (no photo)
     const res = await fetch('/api/restaurants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ name: name.trim() }),
     });
     const data = await res.json();
     setStores(data);
     setName('');
     setPhotoFile(null);
+
+    // Upload photo if provided
+    if (photoFile && data.length > 0) {
+      const newRestaurant = data[data.length - 1];
+      const form = new FormData();
+      form.append('id', newRestaurant.id);
+      form.append('file', photoFile);
+      await fetch('/api/restaurants', { method: 'PUT', body: form });
+      const res2 = await fetch('/api/restaurants');
+      setStores(await res2.json());
+    }
     setMsg('新增成功');
     setTimeout(() => setMsg(''), 2000);
   };
@@ -89,7 +92,7 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：鼎泰豐" className="w-full px-3 py-2 border rounded-lg" />
           </div>
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs text-gray-500 mb-1">菜單照片</label>
+            <label className="block text-xs text-gray-500 mb-1">菜單照片（可選）</label>
             <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} className="w-full px-3 py-1 border rounded-lg text-sm" />
           </div>
           <button onClick={handleAdd} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">新增</button>

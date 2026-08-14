@@ -9,8 +9,6 @@ function formatDate(dateStr: string) {
 
 function formatTime(timeStr: string) {
   if (!timeStr) return '-';
-  // created_at is stored as UTC ISO with Z suffix, e.g. "2026-07-10T05:08:30.123Z"
-  // Parse as UTC, then convert to Taiwan (+8)
   const d = new Date(timeStr);
   if (isNaN(d.getTime())) return '-';
   const utcH = d.getUTCHours();
@@ -23,6 +21,7 @@ function formatTime(timeStr: string) {
 export default function ReportManager({ report, setReport, year, setYear, month, setMonth, exportCSV }: any) {
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -41,10 +40,21 @@ export default function ReportManager({ report, setReport, year, setYear, month,
       body: JSON.stringify({ year, month }),
     });
     setClearing(false);
-    // Regenerate report after clearing
     const res = await fetch(`/api/monthly-report?year=${year}&month=${month}`);
     const data = await res.json();
     setReport(data);
+  };
+
+  const handleDownloadCSV = async () => {
+    setDetailLoading(true);
+    const res = await fetch('/api/monthly-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month }),
+    });
+    const data = await res.json();
+    setDetailLoading(false);
+    if (data.details) exportCSV({ summary: report.summary, details: data.details });
   };
 
   return (
@@ -65,14 +75,10 @@ export default function ReportManager({ report, setReport, year, setYear, month,
         <button onClick={handleGenerate} disabled={loading} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
           {loading ? '載入中...' : '產生報表'}
         </button>
-        {report && report.summary && report.summary.length > 0 && (
-          <button onClick={() => exportCSV(report)} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">匯出 CSV</button>
-        )}
       </div>
 
       {report && report.summary && report.summary.length > 0 && (
         <div className="space-y-6">
-          {/* Totals sheet */}
           <div>
             <h4 className="font-semibold mb-2">💰 總彙總（每人當月累積）</h4>
             <table className="w-full text-sm bg-white rounded-lg border">
@@ -97,42 +103,14 @@ export default function ReportManager({ report, setReport, year, setYear, month,
             </table>
           </div>
 
-          {/* Detail sheet */}
-          <div>
-            <h4 className="font-semibold mb-2">📋 訂單明細（{report.totalLines} 筆）</h4>
-            <table className="w-full text-sm bg-white rounded-lg border">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left p-3">日期</th>
-                  <th className="text-left p-3">時間</th>
-                  <th className="text-left p-3">餐廳</th>
-                  <th className="text-left p-3">姓名</th>
-                  <th className="text-left p-3">菜色</th>
-                  <th className="text-right p-3">數量</th>
-                  <th className="text-right p-3">單價</th>
-                  <th className="text-right p-3">金額</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.details.map((d: any, i: number) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{formatDate(d.order_date)}</td>
-                    <td className="p-3">{formatTime(d.order_time)}</td>
-                    <td className="p-3">{d.restaurant_name}</td>
-                    <td className="p-3">{d.employee_name}</td>
-                    <td className="p-3">{d.dish_name}</td>
-                    <td className="p-3 text-right">{d.quantity}</td>
-                    <td className="p-3 text-right">NT${d.price}</td>
-                    <td className="p-3 text-right font-medium">NT${d.price * d.quantity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex gap-3 justify-end">
+            <button onClick={handleDownloadCSV} disabled={detailLoading} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+              {detailLoading ? '讀取中...' : '匯出 CSV'}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Clear button moved below tables to prevent accidental click */}
       {report && report.summary && report.summary.length > 0 && (
         <div className="text-right">
           <button onClick={handleClearMonth} disabled={clearing} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">

@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<'restaurants' | 'daily' | 'orders' | 'report'>('restaurants');
   const [stores, setStores] = useState<any[]>([]);
   const [dailyOrders, setDailyOrders] = useState<any[]>([]);
-  const [report, setReport] = useState<any[]>([]);
+  const [report, setReport] = useState<any>({});
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
 
@@ -43,15 +43,12 @@ export default function AdminDashboard() {
   if (loading) return <div className="text-center py-12 text-gray-400">載入中...</div>;
 
   const handleExportCSV = (data: any) => {
-    if (!data) return;
+    if (!data || !data.summary) return;
 
-    // Build total rows and detail rows
     const totalRows: string[][] = [];
-    if (data.summary) {
-      data.summary.forEach((r: any) => {
-        totalRows.push([r.department || '-', r.name, r.order_count, r.total_amount]);
-      });
-    }
+    data.summary.forEach((r: any) => {
+      totalRows.push([r.department || '-', r.name, r.order_count, r.total_amount]);
+    });
     const detailRows: string[][] = [];
     if (data.details) {
       data.details.forEach((d: any) => {
@@ -75,17 +72,13 @@ export default function AdminDashboard() {
 
     const maxLen = Math.max(totalRows.length, detailRows.length, 1);
 
-    // Build side-by-side CSV: 總彙總 (left A-D) | 明細 (right F-K)
     const csvLines: string[] = [];
-    // Title row: 總彙總 on left, 訂餐明細 on right
     csvLines.push([`${reportMonth}月總彙總`, '', '', '', '', '訂餐明細', '', '', '', '', '', '', '', ''].join(','));
-    // Headers: 總彙總 first, then empty column, then 明細 headers
     csvLines.push([...['部門', '姓名', '訂餐次數', '總金額'], '', ...['日期', '時間', '餐廳', '姓名', '菜色', '數量', '單價', '金額']].join(','));
 
     for (let i = 0; i < maxLen; i++) {
       const tr = totalRows[i] || [];
       const dr = detailRows[i] || [];
-      // Pad shorter rows
       const paddedTr = [...tr, ...Array(Math.max(0, 4 - tr.length)).fill('')];
       const paddedDr = [...dr, ...Array(Math.max(0, 8 - dr.length)).fill('')];
       csvLines.push([...paddedTr, '', ...paddedDr].join(','));

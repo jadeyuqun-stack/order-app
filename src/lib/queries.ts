@@ -6,19 +6,33 @@ export function createRestaurant(name: string, photoUrl: string) {
   db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(uuidv4(), name, photoUrl);
 }
 export function getAllRestaurants() {
-  return db.prepare('SELECT * FROM restaurants ORDER BY created_at DESC').all();
+  return db.prepare('SELECT id, name, photo_url FROM restaurants ORDER BY created_at DESC LIMIT 20').all();
 }
 
 // ===== Daily Orders =====
 export function createDailyOrder(orderDate: string, restaurantId: string, deadline: string) {
   db.prepare('INSERT INTO daily_orders (id, order_date, restaurant_id, order_deadline) VALUES (?, ?, ?, ?)').run(uuidv4(), orderDate, restaurantId, deadline);
 }
-export function getDailyOrders() {
-  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id ORDER BY d.order_date DESC`).all();
+export function getDailyOrders(fromDate?: string) {
+  if (fromDate) {
+    return db.prepare(`
+      SELECT d.id, d.order_date, d.status, d.order_deadline, r.name as restaurant_name
+      FROM daily_orders d
+      JOIN restaurants r ON d.restaurant_id = r.id
+      WHERE d.order_date >= ?
+      ORDER BY d.order_date DESC
+    `).all(fromDate);
+  }
+  return db.prepare(`
+    SELECT d.id, d.order_date, d.status, d.order_deadline, r.name as restaurant_name
+    FROM daily_orders d
+    JOIN restaurants r ON d.restaurant_id = r.id
+    ORDER BY d.order_date DESC LIMIT 7
+  `).all();
 }
 export function getActiveDailyOrder() {
   const now = new Date().toISOString();
-  return db.prepare(`SELECT d.*, r.name as restaurant_name, r.photo_url as restaurant_photo FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > ? ORDER BY d.order_date DESC LIMIT 1`).get(now);
+  return db.prepare(`SELECT d.*, r.name as restaurant_name FROM daily_orders d JOIN restaurants r ON d.restaurant_id = r.id WHERE d.status = 'open' AND d.order_deadline > ? ORDER BY d.order_date DESC LIMIT 1`).get(now);
 }
 export function closeDailyOrder(id: string) {
   db.prepare("UPDATE daily_orders SET status = 'closed' WHERE id = ?").run(id);
@@ -70,7 +84,7 @@ export function getMonthlyReport(year: number, month: number) {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
   const end = month === 12 ? `${year + 1}-01-01` : `${year}-${month + 1 < 10 ? '0' + (month + 1) : month + 1}-01`;
   return db.prepare(`
-    SELECT e.id, e.name, e.department,
+    SELECT e.name, e.department,
            SUM(o.price * o.quantity) as total_amount,
            COUNT(o.id) as order_count
     FROM orders o
@@ -78,5 +92,21 @@ export function getMonthlyReport(year: number, month: number) {
     JOIN daily_orders d ON o.daily_order_id = d.id
     WHERE d.order_date >= ? AND d.order_date < ?
     GROUP BY e.id ORDER BY e.department, e.name
+  `).all(start, end);
+}
+
+export function getMonthlyReportDetails(year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const end = month === 12 ? `${year + 1}-01-01` : `${year}-${month + 1 < 10 ? '0' + (month + 1) : month + 1}-01`;
+  return db.prepare(`
+    SELECT d.order_date, d.order_deadline, r.name as restaurant_name,
+           e.name as employee_name, e.department,
+           o.dish_name, o.price, o.quantity, o.created_at as order_time
+    FROM orders o
+    JOIN employees e ON o.employee_id = e.id
+    JOIN daily_orders d ON o.daily_order_id = d.id
+    JOIN restaurants r ON d.restaurant_id = r.id
+    WHERE d.order_date >= ? AND d.order_date < ?
+    ORDER BY d.order_date, e.department, e.name
   `).all(start, end);
 }

@@ -20,7 +20,7 @@ interface DailyOrder {
   id: string;
   order_date: string;
   restaurant_name: string;
-  restaurant_photo: string;
+  restaurant_id: string;
   order_deadline: string;
   status: string;
 }
@@ -47,6 +47,7 @@ export default function HomePage() {
   const [activeOrder, setActiveOrder] = useState<DailyOrder | null>(null);
   const [todayOrders, setTodayOrders] = useState<OrderItem[]>([]);
   const [orderSummary, setOrderSummary] = useState<OrderSummary[]>([]);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,9 +55,11 @@ export default function HomePage() {
     Promise.all([
       fetch('/api/daily-orders').then((r) => r.json()),
       fetch(`/api/orders?date=${today}`).then((r) => r.json()),
-    ]).then(([ordersData, todayData]) => {
+      fetch('/api/restaurants').then((r) => r.json().catch(() => [])),
+    ]).then(([ordersData, todayData, restData]) => {
       setActiveOrder(ordersData.active || null);
       setTodayOrders(todayData);
+      setRestaurants(Array.isArray(restData) ? restData : []);
 
       // Group by dish_name + quantity + price
       const grouped: Record<string, OrderSummary> = {};
@@ -97,12 +100,15 @@ export default function HomePage() {
             </div>
           </div>
 
-          {activeOrder.restaurant_photo && (
-            <div className="bg-white rounded-xl border p-4">
-              <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-              <img src={activeOrder.restaurant_photo} alt="菜單" className="w-full rounded-lg object-contain" />
-            </div>
-          )}
+          {activeOrder?.restaurant_id && (() => {
+            const r = restaurants.find((r: any) => r.id === activeOrder.restaurant_id);
+            return r?.photo_url ? (
+              <div className="bg-white rounded-xl border p-4">
+                <h3 className="font-semibold mb-2">📸 菜單照片</h3>
+                <img src={r.photo_url} alt="菜單" className="w-full rounded-lg object-contain" />
+              </div>
+            ) : null;
+          })()}
         </div>
       ) : (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">

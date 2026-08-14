@@ -32,16 +32,18 @@ export default function MenuPage() {
   const [quantity, setQuantity] = useState('1');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
 
   useEffect(() => {
     setMyName(localStorage.getItem('orderName') || '');
-    fetch('/api/daily-orders')
-      .then((r) => r.json())
-      .then((data) => {
-        setActiveOrder(data.active);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch('/api/daily-orders').then((r) => r.json()),
+      fetch('/api/restaurants').then((r) => r.json().catch(() => [])),
+    ]).then(async ([ordersData, restData]) => {
+      setActiveOrder(ordersData.active);
+      setRestaurants(Array.isArray(restData) ? restData : []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -113,12 +115,15 @@ export default function MenuPage() {
         <p className="text-sm text-blue-500">截止時間：{formatDeadline(activeOrder.order_deadline)}</p>
       </div>
 
-      {activeOrder.restaurant_photo && (
-        <div className="bg-white rounded-xl border p-4">
-          <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-          <img src={activeOrder.restaurant_photo} alt="菜單" className="w-full rounded-lg object-contain" />
-        </div>
-      )}
+      {activeOrder?.restaurant_id && (() => {
+        const r = restaurants.find((r: any) => r.id === activeOrder.restaurant_id);
+        return r?.photo_url ? (
+          <div className="bg-white rounded-xl border p-4">
+            <h3 className="font-semibold mb-2">📸 菜單照片</h3>
+            <img src={r.photo_url} alt="菜單" className="w-full rounded-lg object-contain" />
+          </div>
+        ) : null;
+      })()}
 
       {/* Name */}
       <div className="bg-white rounded-xl border p-4">
