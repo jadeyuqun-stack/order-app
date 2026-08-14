@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
@@ -120,7 +121,14 @@ export default function MenuPage() {
         return r?.photo_url ? (
           <div className="bg-white rounded-xl border p-4">
             <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-            <img src={r.photo_url} alt="菜單" className="w-full rounded-lg object-contain" />
+            <Image
+              src={r.photo_url}
+              alt="菜單"
+              width={600}
+              height={400}
+              className="w-full rounded-lg object-contain"
+              loading="lazy"
+            />
           </div>
         ) : null;
       })()}
