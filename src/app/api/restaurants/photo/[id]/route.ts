@@ -15,11 +15,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const ext = path.extname(filePath).toLowerCase();
   const contentType = ext === '.png' ? 'image/png' : ext === '.gif' ? 'image/gif' : 'image/jpeg';
 
-  const data = fs.readFileSync(filePath);
-  return new NextResponse(data, {
+  // Use streaming instead of readFileSync to avoid blocking the event loop
+  const fileStream = fs.createReadStream(filePath);
+  return new NextResponse(fileStream, {
     headers: {
       'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=86400, immutable',
     },
   });
 }
