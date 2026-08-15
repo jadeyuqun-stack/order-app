@@ -1,51 +1,38 @@
 // postinstall: ensure correct native binary for current platform
+// Only runs on Linux (Render). Skips on macOS/Windows for local development.
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { Transform } = require('stream');
+const os = require('os');
+const { execSync } = require('child_process');
 
-const TARGET_DIR = path.join(__dirname, 'node_modules', 'better-sqlite3', 'build', 'Release');
-const TARGET_FILE = path.join(TARGET_DIR, 'better_sqlite3.node');
+// Skip on non-Linux platforms (local development)
+if (process.platform !== 'linux') {
+  console.log(`[postinstall] skipping on ${process.platform}-${process.arch}`);
+  process.exit(0);
+}
 
-fs.mkdirSync(TARGET_DIR, { recursive: true });
+const PKG_DIR = path.join(__dirname, 'node_modules', 'better-sqlite3');
+const TARGET_FILE = path.join(PKG_DIR, 'build', 'Release', 'better_sqlite3.node');
 
-const PLATFORM = process.platform === 'linux' ? 'linux' : process.platform;
-const ARCH = process.arch === 'arm' ? 'arm64' : process.arch;
-const BUNDLE_PATH = path.join(__dirname, 'native-bundles', `${PLATFORM}-${ARCH}`, 'better-sqlite3.tar.gz');
+fs.mkdirSync(path.join(PKG_DIR, 'build', 'Release'), { recursive: true });
+
+const ARCH = process.arch === 'arm' ? 'arm64' : 'x64';
+const BUNDLE_PATH = path.join(__dirname, 'native-bundles', `linux-${ARCH}`, 'better-sqlite3.tar.gz');
 
 if (fs.existsSync(BUNDLE_PATH)) {
-  console.log(`[${PLATFORM}-${ARCH}] extracting bundled native binary...`);
+  console.log(`[linux-${ARCH}] extracting bundled native binary...`);
 
   const tarBuf = fs.readFileSync(BUNDLE_PATH);
   const gunzipped = zlib.gunzipSync(tarBuf);
 
-  // Extract tar synchronously using tar-fs with a callback stream approach
-  // We use a custom sink that writes to a buffer, then extract the single file
-  const entries = [];
-  let files = {};
-
-  const extract = require('tar-fs').extract(TARGET_DIR, {
-    ignore: (name) => {
-      // Collect entries instead of extracting to disk
-      return false;
-    }
-  });
-
-  // Instead of streaming to disk, use a simpler approach:
-  // Manually parse the tar from the gunzipped buffer
-  const BufferList = require('bufferlist') || null;
-
-  // Actually, let's use a completely different approach:
-  // Write gunzipped data to a temp file, then use child_process execSync with tar
-  const os = require('os');
-  const { execSync } = require('child_process');
-
+  // Write gunzipped tar to a temp file, then extract with system tar
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sqlite-extract-'));
   const tmpTar = path.join(tmpDir, 'bundle.tar');
   fs.writeFileSync(tmpTar, gunzipped);
 
-  // Use system tar to extract (available on both macOS and Linux)
-  execSync(`tar -xzf "${tmpTar}" -C "${TARGET_DIR}"`, { stdio: 'pipe' });
+  // Extract to package root so 'build/Release/better_sqlite3.node' lands correctly
+  execSync(`tar -xzf "${tmpTar}" -C "${PKG_DIR}"`, { stdio: 'pipe' });
   fs.unlinkSync(tmpTar);
   fs.rmdirSync(tmpDir);
 
@@ -53,8 +40,10 @@ if (fs.existsSync(BUNDLE_PATH)) {
     const size = fs.statSync(TARGET_FILE).size;
     console.log(`Done: ${size} bytes written to ${TARGET_FILE}`);
   } else {
-    console.warn(`[${PLATFORM}-${ARCH}] extraction finished but target file not found`);
+    console.warn(`[linux-${ARCH}] extraction finished but target file not found`);
+    process.exit(1);
   }
 } else {
-  console.warn(`[${PLATFORM}-${ARCH}] no bundled binary found, binary may fail to load`);
+  console.warn(`[linux-${ARCH}] no bundled binary found, binary may fail to load`);
+  process.exit(1);
 }
