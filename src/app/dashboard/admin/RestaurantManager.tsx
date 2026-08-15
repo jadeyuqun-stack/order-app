@@ -6,6 +6,7 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
   const [name, setName] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [msg, setMsg] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -59,26 +60,32 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
     input.onchange = async (e: any) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const text = await file.text();
-      let items: any[];
+      setImporting(true);
+      setMsg('');
       try {
-        items = JSON.parse(text);
-        if (!Array.isArray(items)) items = [items];
-      } catch {
-        setMsg('JSON 格式錯誤');
+        const text = await file.text();
+        let items: any[];
+        try {
+          items = JSON.parse(text);
+          if (!Array.isArray(items)) items = [items];
+        } catch {
+          setMsg('JSON 格式錯誤');
+          setImporting(false);
+          return;
+        }
+        const res = await fetch('/api/restaurants/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        const data = await res.json();
+        setStores(data.restaurants || []);
+        setMsg(`匯入成功：${data.imported} 筆，跳過 ${data.skipped} 筆`);
         setTimeout(() => setMsg(''), 3000);
-        return;
+        refresh();
+      } finally {
+        setImporting(false);
       }
-      const res = await fetch('/api/restaurants/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-      });
-      const data = await res.json();
-      setStores(data.restaurants || []);
-      setMsg(`匯入成功：${data.imported} 筆，跳過 ${data.skipped} 筆`);
-      setTimeout(() => setMsg(''), 3000);
-      refresh();
     };
     input.click();
   };
@@ -103,7 +110,13 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
 
       <div className="flex gap-2">
         <button onClick={handleExport} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">匯出餐廳資料</button>
-        <button onClick={handleImport} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">匯入餐廳資料</button>
+        <button
+          onClick={handleImport}
+          disabled={importing}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {importing ? '匯入中…' : '匯入餐廳資料'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

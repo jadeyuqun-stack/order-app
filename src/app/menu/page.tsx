@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 function formatDeadline(isoStr: string) {
   if (!isoStr) return '-';
@@ -33,13 +34,14 @@ export default function MenuPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     setMyName(localStorage.getItem('orderName') || '');
     Promise.all([
       fetch('/api/daily-orders').then((r) => r.json()),
       fetch('/api/restaurants').then((r) => r.json().catch(() => [])),
-    ]).then(async ([ordersData, restData]) => {
+    ]).then(([ordersData, restData]) => {
       setActiveOrder(ordersData.active);
       setRestaurants(Array.isArray(restData) ? restData : []);
       setLoading(false);
@@ -70,6 +72,7 @@ export default function MenuPage() {
 
   const handleBatchSubmit = async () => {
     if (!activeOrder || !myName.trim() || cart.length === 0) return;
+    setImporting(true);
     for (const item of cart) {
       await fetch('/api/orders', {
         method: 'POST',
@@ -85,6 +88,7 @@ export default function MenuPage() {
     }
     setSubmitted(true);
     setCart([]);
+    setImporting(false);
     fetch(`/api/orders?dailyOrderId=${activeOrder.id}&name=${encodeURIComponent(myName.trim())}`)
       .then((r) => r.json())
       .then(setMyOrders);
@@ -120,7 +124,15 @@ export default function MenuPage() {
         return r?.photo_url ? (
           <div className="bg-white rounded-xl border p-4">
             <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-            <img src={r.photo_url} alt="菜單" className="w-full rounded-lg object-contain" />
+            <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '3/2' }}>
+              <Image
+                src={r.photo_url}
+                alt="菜單"
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw"
+              />
+            </div>
           </div>
         ) : null;
       })()}
@@ -176,10 +188,10 @@ export default function MenuPage() {
           </div>
           <button
             onClick={handleBatchSubmit}
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 || importing}
             className="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            一次送出全部（{cart.length} 項）
+            {importing ? '送出中…' : `一次送出全部（${cart.length} 項）`}
           </button>
         </div>
       )}
