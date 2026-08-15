@@ -1,16 +1,11 @@
 import path from 'path';
+import crypto from 'crypto';
+import { v4 } from 'uuid';
 
-const dbPath = path.join(process.cwd(), 'data.db');
+export const dbPath = path.join(process.cwd(), 'data.db');
 
-// Lazy init: defer native module load until first request to avoid cold-start delay
-let _db: any = null;
-let _ready = false;
-
-function init() {
-  if (_ready) return;
+function createDatabase() {
   const Database = require('better-sqlite3');
-  const crypto = require('crypto');
-  const { v4 } = require('uuid');
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
@@ -60,19 +55,10 @@ function init() {
     const hash = crypto.createHash('sha256').update('admin123').digest('hex');
     db.prepare('INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)').run(v4(), 'admin', hash);
   }
-  _db = db;
-  _ready = true;
+  return db;
 }
 
-// Synchronous proxy: first access triggers native module load
-const db: any = new Proxy(
-  {},
-  {
-    get(_target, prop) {
-      if (!_ready) init();
-      return _db[prop];
-    },
-  }
-);
+// Eager init: native module loads once and is cached by Node.js require
+const db = createDatabase();
 
-export { db, dbPath };
+export { db };
