@@ -32,7 +32,8 @@ if (fs.existsSync(BUNDLE_PATH)) {
   fs.writeFileSync(tmpTar, gunzipped);
 
   // Extract to package root so 'build/Release/better_sqlite3.node' lands correctly
-  execSync(`tar -xzf "${tmpTar}" -C "${PKG_DIR}"`, { stdio: 'pipe' });
+  // Use -xf (not -xzf) since the data is already decompressed
+  execSync(`tar -xf "${tmpTar}" -C "${PKG_DIR}"`, { stdio: 'pipe' });
   fs.unlinkSync(tmpTar);
   fs.rmdirSync(tmpDir);
 
