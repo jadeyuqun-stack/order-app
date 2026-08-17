@@ -53,7 +53,7 @@ function createDatabase() {
   const adminExists = db.prepare("SELECT COUNT(*) as cnt FROM admins WHERE username = ?").get('admin');
   if ((adminExists as any).cnt === 0) {
     const hash = crypto.createHash('sha256').update('admin123').digest('hex');
-    db.prepare('INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)').run(v4(), 'admin', hash);
+    db.prepare('INSERT OR IGNORE INTO admins (id, username, password_hash) VALUES (?, ?, ?)').run(v4(), 'admin', hash);
   }
   return db;
 }
