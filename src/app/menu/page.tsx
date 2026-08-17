@@ -23,6 +23,34 @@ interface CartItem {
   quantity: string;
 }
 
+function DetailsMenuPhoto({ photoUrl }: { photoUrl: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="bg-white rounded-xl border p-4">
+      <h3 className="font-semibold mb-2">📸 菜單照片</h3>
+      {!visible ? (
+        <button
+          onClick={() => setVisible(true)}
+          className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-600 font-medium"
+        >
+          點擊查看菜單照片
+        </button>
+      ) : (
+        <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '3/2' }}>
+          <Image
+            src={photoUrl}
+            alt="菜單"
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw"
+            unoptimized
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MenuPage() {
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [myOrders, setMyOrders] = useState<any[]>([]);
@@ -119,23 +147,13 @@ export default function MenuPage() {
         <p className="text-sm text-blue-500">截止時間：{formatDeadline(activeOrder.order_deadline)}</p>
       </div>
 
+      {/* Show photo on demand */}
       {activeOrder?.restaurant_id && (() => {
         const r = restaurants.find((r: any) => r.id === activeOrder.restaurant_id);
-        return r?.photo_url ? (
-          <div className="bg-white rounded-xl border p-4">
-            <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-            <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '3/2' }}>
-              <Image
-                src={r.photo_url}
-                alt="菜單"
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw"
-                unoptimized
-              />
-            </div>
-          </div>
-        ) : null;
+        if (!r?.photo_url) return null;
+        return (
+          <DetailsMenuPhoto photoUrl={r.photo_url} />
+        );
       })()}
 
       {/* Name */}
