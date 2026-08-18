@@ -43,8 +43,10 @@ export async function POST(request: Request) {
   // JSON body (no photo)
   const { name } = await request.json();
   if (!name) return NextResponse.json({ error: '餐廳名稱必填' }, { status: 400 });
-  createRestaurant(name, '');
-  return NextResponse.json(getAllRestaurants());
+  const id = uuidv4();
+  db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(id, name, '');
+  const newRestaurant = db.prepare('SELECT id, name, photo_url FROM restaurants WHERE id = ?').get(id);
+  return NextResponse.json({ newRestaurant });
 }
 
 export async function PUT(request: Request) {

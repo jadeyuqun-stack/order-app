@@ -17,20 +17,26 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
       body: JSON.stringify({ name: name.trim() }),
     });
     const data = await res.json();
-    setStores(data);
-    setName('');
+    const newRestaurant = data.newRestaurant;
+    if (!newRestaurant) {
+      setMsg('新增失敗，請稍後再試');
+      return;
+    }
     setPhotoFile(null);
 
     // Upload photo if provided
-    if (photoFile && data.length > 0) {
-      const newRestaurant = data[data.length - 1];
+    if (photoFile) {
       const form = new FormData();
       form.append('id', newRestaurant.id);
       form.append('file', photoFile);
       await fetch('/api/restaurants', { method: 'PUT', body: form });
+      // Refresh to get updated restaurant with photo_url
       const res2 = await fetch('/api/restaurants');
       setStores(await res2.json());
+    } else {
+      setStores((prev: any) => [newRestaurant, ...prev]);
     }
+    setName('');
     setMsg('新增成功');
     setTimeout(() => setMsg(''), 2000);
   };
