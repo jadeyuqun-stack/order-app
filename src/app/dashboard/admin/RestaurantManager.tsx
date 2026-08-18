@@ -32,7 +32,7 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
       form.append('id', newRestaurant.id);
       form.append('file', photoFile);
       await fetch('/api/restaurants', { method: 'PUT', body: form });
-      // Refresh to get updated restaurant with photo_url
+      // Refresh to get updated restaurant with has_photo
       const res2 = await fetch('/api/restaurants');
       setStores(await res2.json());
     } else {
