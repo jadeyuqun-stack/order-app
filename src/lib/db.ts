@@ -6,7 +6,9 @@ export const dbPath = path.join(process.cwd(), 'data.db');
 
 function createDatabase() {
   const Database = require('better-sqlite3');
-  const db = new Database(dbPath);
+  // timeout: wait up to 5s for a busy DB instead of throwing SQLITE_BUSY
+  // (defends against transient contention at runtime)
+  const db = new Database(dbPath, { timeout: 5000 });
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(`
@@ -58,7 +60,22 @@ function createDatabase() {
   return db;
 }
 
-// Eager init: native module loads once and is cached by Node.js require
-const db = createDatabase();
+// Lazy singleton: the SQLite file is only opened on first actual use.
+// Next.js "collecting page data" imports every route module in parallel
+// build workers; eagerly opening the DB at module scope made those workers
+// race on the same file ("database is locked"). Deferring creation until a
+// property is accessed keeps build-time import side-effect-free.
+let dbInstance: any = null;
 
-export { db };
+function getDb() {
+  if (!dbInstance) dbInstance = createDatabase();
+  return dbInstance;
+}
+
+export const db = new Proxy({} as any, {
+  get(_target, prop) {
+    const instance = getDb();
+    const value = instance[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  },
+});
