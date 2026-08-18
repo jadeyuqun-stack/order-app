@@ -6,7 +6,12 @@ export function createRestaurant(name: string, photoUrl: string) {
   db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(uuidv4(), name, photoUrl);
 }
 export function getAllRestaurants() {
-  return db.prepare('SELECT id, name, photo_url FROM restaurants ORDER BY created_at DESC LIMIT 20').all();
+  // Slim response: no photo data (photos served on demand via /api/restaurants/photo/[id])
+  return db.prepare(`
+    SELECT id, name,
+      (photo_url IS NOT NULL AND photo_url != '') AS has_photo
+    FROM restaurants ORDER BY created_at DESC LIMIT 20
+  `).all();
 }
 
 // ===== Daily Orders =====

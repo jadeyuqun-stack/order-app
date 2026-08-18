@@ -7,6 +7,8 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [msg, setMsg] = useState('');
   const [importing, setImporting] = useState(false);
+  // Which restaurant's photo is currently revealed (click-to-show to save bandwidth)
+  const [shownPhoto, setShownPhoto] = useState<string | null>(null);
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -128,15 +130,24 @@ export default function RestaurantManager({ stores, setStores, refresh }: any) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stores.map((r: any) => (
           <div key={r.id} className="bg-white rounded-xl border overflow-hidden">
-            {r.photo_url && (
-              <Image
-                src={r.photo_url}
-                alt={r.name}
-                width={400}
-                height={160}
-                className="w-full h-40 object-cover"
-                loading="lazy"
-              />
+            {r.has_photo && (
+              shownPhoto === r.id ? (
+                <Image
+                  src={`/api/restaurants/photo/${r.id}`}
+                  alt={r.name}
+                  width={400}
+                  height={160}
+                  className="w-full h-40 object-cover"
+                  unoptimized
+                />
+              ) : (
+                <button
+                  onClick={() => setShownPhoto(r.id)}
+                  className="w-full h-40 bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-sm text-gray-500"
+                >
+                  📷 點擊查看照片
+                </button>
+              )
             )}
             <div className="p-3 flex items-center justify-between">
               <span className="font-medium">{r.name}</span>

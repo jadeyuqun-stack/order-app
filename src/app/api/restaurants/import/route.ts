@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { getAllRestaurants } from '@/lib/queries';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   txn();
 
   return NextResponse.json({
-    restaurants: db.prepare('SELECT id, name, photo_url FROM restaurants ORDER BY created_at DESC').all(),
+    restaurants: getAllRestaurants(),
     imported,
     skipped,
   });

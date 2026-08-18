@@ -2,12 +2,23 @@ import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { createRestaurant, getAllRestaurants } from '@/lib/queries';
 import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
-import fs from 'fs';
 
-const PHOTO_DIR = path.join(process.cwd(), 'public', 'menu-photos');
+function mimeFromExt(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'svg') return 'image/svg+xml';
+  return 'image/jpeg';
+}
 
-if (!fs.existsSync(PHOTO_DIR)) fs.mkdirSync(PHOTO_DIR, { recursive: true });
+// Convert an uploaded File to a base64 data URI stored directly in the DB.
+// (Photos are kept in SQLite so they survive — no dependency on ephemeral
+//  files written to public/ which Render wipes on every deploy.)
+async function fileToDataUri(file: File): Promise<string> {
+  const buf = Buffer.from(await file.arrayBuffer());
+  return `data:${mimeFromExt(file.name)};base64,${buf.toString('base64')}`;
+}
 
 export async function GET() {
   return NextResponse.json(getAllRestaurants());
@@ -25,18 +36,13 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: '餐廳名稱必填' }, { status: 400 });
 
     const id = uuidv4();
-    let photoPath = '';
+    let photoUrl = '';
 
     if (file && file.size > 0) {
-      const ext = path.extname(file.name).toLowerCase() || '.jpg';
-      const safeName = `${id}${ext}`;
-      const destPath = path.join(PHOTO_DIR, safeName);
-      const bytes = await file.arrayBuffer();
-      fs.writeFileSync(destPath, Buffer.from(bytes));
-      photoPath = `/menu-photos/${safeName}`;
+      photoUrl = await fileToDataUri(file);
     }
 
-    db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(id, name, photoPath);
+    db.prepare('INSERT INTO restaurants (id, name, photo_url) VALUES (?, ?, ?)').run(id, name, photoUrl);
     return NextResponse.json(getAllRestaurants());
   }
 
@@ -57,12 +63,8 @@ export async function PUT(request: Request) {
   if (!id) return NextResponse.json({ error: '缺少 ID' }, { status: 400 });
 
   if (file && file.size > 0) {
-    const ext = path.extname(file.name).toLowerCase() || '.jpg';
-    const safeName = `${id}${ext}`;
-    const destPath = path.join(PHOTO_DIR, safeName);
-    const bytes = await file.arrayBuffer();
-    fs.writeFileSync(destPath, Buffer.from(bytes));
-    db.prepare('UPDATE restaurants SET photo_url = ? WHERE id = ?').run(`/menu-photos/${safeName}`, id);
+    const dataUri = await fileToDataUri(file);
+    db.prepare('UPDATE restaurants SET photo_url = ? WHERE id = ?').run(dataUri, id);
   }
 
   return NextResponse.json({ success: true });
@@ -88,12 +90,7 @@ export async function DELETE(request: Request) {
     // Delete the restaurant
     db.prepare('DELETE FROM restaurants WHERE id = ?').run(id);
 
-    // Remove photo file if exists
-    const exts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    for (const ext of exts) {
-      const photoPath = path.join(PHOTO_DIR, `${id}${ext}`);
-      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
-    }
+    // Photo is stored in the DB (photo_url), removed with the row above.
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

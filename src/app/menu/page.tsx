@@ -24,29 +24,19 @@ interface CartItem {
 }
 
 function DetailsMenuPhoto({ photoUrl }: { photoUrl: string }) {
-  const [visible, setVisible] = useState(false);
   return (
     <div className="bg-white rounded-xl border p-4">
       <h3 className="font-semibold mb-2">📸 菜單照片</h3>
-      {!visible ? (
-        <button
-          onClick={() => setVisible(true)}
-          className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-600 font-medium"
-        >
-          點擊查看菜單照片
-        </button>
-      ) : (
-        <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '3/2' }}>
-          <Image
-            src={photoUrl}
-            alt="菜單"
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw"
-            unoptimized
-          />
-        </div>
-      )}
+      <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '3/2' }}>
+        <Image
+          src={photoUrl}
+          alt="菜單"
+          fill
+          className="object-contain"
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw"
+          unoptimized
+        />
+      </div>
     </div>
   );
 }
@@ -147,12 +137,12 @@ export default function MenuPage() {
         <p className="text-sm text-blue-500">截止時間：{formatDeadline(activeOrder.order_deadline)}</p>
       </div>
 
-      {/* Show photo on demand */}
+      {/* Menu photo (auto-shown) */}
       {activeOrder?.restaurant_id && (() => {
         const r = restaurants.find((r: any) => r.id === activeOrder.restaurant_id);
-        if (!r?.photo_url) return null;
+        if (!r?.has_photo) return null;
         return (
-          <DetailsMenuPhoto photoUrl={r.photo_url} />
+          <DetailsMenuPhoto photoUrl={`/api/restaurants/photo/${r.id}`} />
         );
       })()}
 
